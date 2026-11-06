@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Group } from "../board/boardModel";
 import { readGroups } from "../board/loadBoard";
 import type { PicklistField, Platform, StoredDocument, WorkItemField } from "../platform/platform";
+import { RenderFailureBoundary } from "../RenderFailureBoundary";
 import { CardFieldSettings, NO_CARD_CHOICES, type CardChoices } from "./CardFieldSettings";
 import { Choice } from "./Choice";
 import { FilterFieldSettings, filterFieldDraftsOf, filterFieldsProblem, savedFilterFieldsOf } from "./FilterFieldSettings";
@@ -61,26 +62,11 @@ export function SettingsPanel({ platform }: { platform: Platform }): React.JSX.E
     <main className="waypoint-settings flex-column flex-grow" aria-label="Waypoint settings">
       {/* The title the host shows lies in another frame, so a screen reader in this one needs a heading of its own to start from. */}
       <h1 className="screen-reader-only">Waypoint settings</h1>
-      <RenderFailureBoundary platform={platform}>
+      <RenderFailureBoundary whenFailed={(reason) => <FailureWithClose platform={platform} message={`Waypoint's settings stopped working: ${reason}`} />}>
         <PanelLoader platform={platform} />
       </RenderFailureBoundary>
     </main>
   );
-}
-
-/** Without this, React empties the panel when something in it throws while rendering. */
-class RenderFailureBoundary extends React.Component<{ platform: Platform; children: React.ReactNode }, { reason: string | null }> {
-  state: { reason: string | null } = { reason: null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { reason: error.message };
-  }
-
-  render() {
-    const { platform, children } = this.props;
-    const { reason } = this.state;
-    return reason === null ? children : <FailureWithClose platform={platform} message={`Waypoint's settings stopped working: ${reason}`} />;
-  }
 }
 
 function PanelLoader({ platform }: { platform: Platform }): React.JSX.Element {

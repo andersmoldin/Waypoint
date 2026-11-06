@@ -101,7 +101,11 @@ export interface PhaseTab {
   phases: TabPhase[];
 }
 
-/** The stored settings cannot be used. A Project Administrator can fix or reset them in the settings panel. */
+/**
+ * The stored settings cannot be used. A Project Administrator can fix or reset them in the settings panel.
+ * The messages repeat nothing from the document that is not known to be the project's own: that would let
+ * whoever writes the document put their words in Waypoint's mouth, in an error that looks like Waypoint's own.
+ */
 export class InvalidSettingsError extends Error {}
 
 const CURRENT_VERSION = 1;
@@ -139,7 +143,7 @@ export function parseSettingsDocument(content: unknown): SettingsDocument {
   if (!isRecord(content)) throw new InvalidSettingsError("The saved settings are not valid: they are not a settings document.");
   if (content.version !== CURRENT_VERSION) throw new InvalidSettingsError("The saved settings have an unknown version.");
   requireOnlyKnownKeys(content, ["version", "settings", "log"]);
-  requireAtMost(MAX_LOG_ENTRIES, content.log, "the change log");
+  requireAtMost(MAX_LOG_ENTRIES, content.log, "entries in the change log");
   if (!Array.isArray(content.log) || !content.log.every(isLogEntry)) {
     throw new InvalidSettingsError("The saved settings are not valid: the change log is damaged.");
   }
@@ -155,11 +159,11 @@ function parseSettings(settings: unknown): Settings {
   if (!isName(objectType) || !isName(groupType) || !isName(phaseField)) {
     throw new InvalidSettingsError("The saved settings are not valid: the object type, group type and phase field must all be set.");
   }
-  requireAtMost(MAX_PHASES, phaseOrder, "the phase order");
+  requireAtMost(MAX_PHASES, phaseOrder, "phases in the phase order");
   if (!Array.isArray(phaseOrder) || !phaseOrder.every(isName) || new Set(phaseOrder).size !== phaseOrder.length) {
     throw new InvalidSettingsError("The saved settings are not valid: the phase order must list each phase once.");
   }
-  requireAtMost(MAX_HIDDEN_GROUPS, hiddenGroups, "the hidden groups");
+  requireAtMost(MAX_HIDDEN_GROUPS, hiddenGroups, "hidden groups");
   if (!Array.isArray(hiddenGroups) || !hiddenGroups.every(isWorkItemId) || new Set(hiddenGroups).size !== hiddenGroups.length) {
     throw new InvalidSettingsError("The saved settings are not valid: the hidden groups must list each group's work item id once.");
   }
@@ -178,7 +182,7 @@ function parseSettings(settings: unknown): Settings {
 
 function parseFilterFields(filterFields: unknown): FilterField[] {
   if (!Array.isArray(filterFields)) throw new InvalidSettingsError("The saved settings are not valid: the filter fields must be a list.");
-  requireAtMost(MAX_FILTER_FIELDS, filterFields, "the filter fields");
+  requireAtMost(MAX_FILTER_FIELDS, filterFields, "filter fields");
   const parsed = filterFields.map(parseFilterField);
   if (new Set(parsed.map(({ name }) => name)).size !== parsed.length) {
     throw new InvalidSettingsError("The saved settings are not valid: two filter fields have the same name.");
@@ -199,7 +203,7 @@ function parseFilterField(filterField: unknown): FilterField {
       return { type, name, referenceName };
     case "tagPrefix":
       requireOnlyKnownKeys(filterField, ["type", "name", "prefix", "excludedTags"]);
-      requireAtMost(MAX_EXCLUDED_TAGS, excludedTags, "the unticked tags of a filter field");
+      requireAtMost(MAX_EXCLUDED_TAGS, excludedTags, "unticked tags in a filter field");
       if (!isTagPrefix(prefix) || !Array.isArray(excludedTags) || !excludedTags.every(isName) || new Set(excludedTags).size !== excludedTags.length) throw damaged;
       return { type, name, prefix, excludedTags };
     case "filled":
@@ -218,7 +222,7 @@ export function isTagPrefix(value: unknown): value is string {
 
 function parseTabs(tabs: unknown, phaseOrder: string[]): SavedTab[] {
   if (!Array.isArray(tabs) || tabs.length === 0) throw new InvalidSettingsError("The saved settings are not valid: the tabs must be a list of at least one tab.");
-  requireAtMost(MAX_PHASES, tabs, "the tabs");
+  requireAtMost(MAX_PHASES, tabs, "tabs");
   const parsed = tabs.map(parseTab);
   if (new Set(parsed.map(({ name }) => name)).size !== parsed.length) {
     throw new InvalidSettingsError("The saved settings are not valid: two tabs have the same name.");
@@ -268,7 +272,7 @@ function parseRoles(roles: unknown): CardRoles {
 }
 
 function parseDetailFields(detailFields: unknown): string[] {
-  requireAtMost(MAX_DETAIL_FIELDS, detailFields, "the detail panel");
+  requireAtMost(MAX_DETAIL_FIELDS, detailFields, "fields in the detail panel");
   if (!Array.isArray(detailFields) || !detailFields.every(isName) || new Set(detailFields).size !== detailFields.length) {
     throw new InvalidSettingsError("The saved settings are not valid: the detail panel must list each field once.");
   }
@@ -433,16 +437,12 @@ export function arrangeTabs(savedTabs: SavedTab[] | undefined, phases: Phase[]):
   return tabs;
 }
 
-/**
- * What is stored is not repeated in these messages: it would let whoever writes the document put their
- * words in Waypoint's mouth, in an error that looks like Waypoint's own.
- */
 function requireOnlyKnownKeys(record: Record<string, unknown>, known: string[]): void {
   if (Object.keys(record).some((key) => !known.includes(key))) throw new InvalidSettingsError("The saved settings are not valid: they hold something this version does not know.");
 }
 
 function requireAtMost(limit: number, list: unknown, what: string): void {
-  if (Array.isArray(list) && list.length > limit) throw new InvalidSettingsError(`The saved settings are not valid: ${what} holds more than ${limit.toLocaleString("en")} entries.`);
+  if (Array.isArray(list) && list.length > limit) throw new InvalidSettingsError(`The saved settings are not valid: there are more than ${limit.toLocaleString("en")} ${what}.`);
 }
 
 function isLogEntry(entry: unknown): entry is LogEntry {

@@ -19,6 +19,14 @@ async function open(page: Page, scenario: string): Promise<void> {
   await page.goto(`${PAGE_ORIGIN}/hub.html?scenario=${scenario}`);
 }
 
+interface PageChecks {
+  waypointChecks: { readHtml: (html: string) => string; showBoardWith: (value: string) => void };
+}
+
+const readHtml = (page: Page, html: string) => page.evaluate((html) => (window as unknown as PageChecks).waypointChecks.readHtml(html), html);
+
+const showBoardWith = (page: Page, value: string) => page.evaluate((value) => (window as unknown as PageChecks).waypointChecks.showBoardWith(value), value);
+
 const filterButton = (page: Page) => page.getByRole("button", { name: /^Filter/ });
 const board = (page: Page) => page.getByRole("region", { name: "Board" });
 
@@ -142,10 +150,10 @@ test.describe("a field of type html", () => {
     test(`reads ${kind} in about the time of its length`, async ({ page }) => {
       await open(page, "empty");
 
-      const { elapsed } = await page.evaluate((html) => {
+      const elapsed = await page.evaluate((html) => {
         const started = performance.now();
-        (window as unknown as { waypointChecks: { readHtml: (html: string) => string } }).waypointChecks.readHtml(html);
-        return { elapsed: performance.now() - started };
+        (window as unknown as PageChecks).waypointChecks.readHtml(html);
+        return performance.now() - started;
       }, html);
 
       expect(elapsed).toBeLessThan(1_000);
@@ -160,9 +168,7 @@ test.describe("a field of type html", () => {
     test(`reads ${kind} as its text`, async ({ page }) => {
       await open(page, "empty");
 
-      const text = await page.evaluate((html) => (window as unknown as { waypointChecks: { readHtml: (html: string) => string } }).waypointChecks.readHtml(html), html);
-
-      expect(text).toBe("Kept");
+      expect(await readHtml(page, html)).toBe("Kept");
     });
   }
 
@@ -181,7 +187,7 @@ test.describe("a field of type html", () => {
     ].join("");
     await open(page, "empty");
 
-    await page.evaluate((hostile) => (window as unknown as { waypointChecks: { showBoardWith: (value: string) => void } }).waypointChecks.showBoardWith(hostile), hostile);
+    await showBoardWith(page, hostile);
     await board(page).waitFor();
     await board(page).getByRole("button").first().click();
     await page.getByRole("button", { name: "Open work item" }).waitFor();
@@ -195,22 +201,22 @@ test.describe("a field of type html", () => {
 test("a very long text waiting on someone leaves the next card in view", async ({ page }) => {
   await open(page, "empty");
 
-  await page.evaluate(() => (window as unknown as { waypointChecks: { showBoardWith: (value: string) => void } }).waypointChecks.showBoardWith("word ".repeat(20_000)));
+  await showBoardWith(page, "word ".repeat(20_000));
   await board(page).waitFor();
 
   await expect(page.getByText("The next card")).toBeInViewport();
 });
 
-test("a keyboard reaches everything, and the panel gives focus back", async ({ page }) => {
+test("a keyboard reaches the filter, tabs, groups, board and cards, and the panel gives focus back", async ({ page }) => {
   await open(page, "board");
   await board(page).waitFor();
 
   const reached = new Set<string>();
   for (let press = 0; press < 25; press += 1) {
     await page.keyboard.press("Tab");
-    reached.add(await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.getAttribute("role") ?? document.activeElement?.tagName ?? ""));
+    reached.add(await page.evaluate(() => document.activeElement?.closest(".waypoint-card") ? "card" : document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.getAttribute("role") ?? document.activeElement?.tagName ?? ""));
   }
-  for (const stop of ["Filter", "tab", "Board", "LI"]) expect([...reached]).toContain(stop);
+  for (const stop of ["Filter", "tab", "Board", "LI", "card"]) expect([...reached]).toContain(stop);
 
   // The icons in the header are one stop, and the arrow keys move between them, as in Azure DevOps' own header.
   await filterButton(page).focus();
@@ -223,6 +229,38 @@ test("a keyboard reaches everything, and the panel gives focus back", async ({ p
   await page.getByRole("button", { name: "Open work item" }).waitFor();
   await page.keyboard.press("Escape");
   await expect(card).toBeFocused();
+});
+
+test("a keyboard opens a filter's dropdown and chooses in it", async ({ page }) => {
+  await open(page, "board");
+  await filterButton(page).focus();
+  await page.keyboard.press("Enter");
+
+  const dropdown = page.getByRole("button", { name: /^Waiting/ });
+  await dropdown.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("option", { name: "Not waiting" }).waitFor();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByRole("button", { name: "Waiting: Waiting" })).toBeVisible();
+});
+
+test("a keyboard moves a phase in the settings and reaches Save", async ({ page }) => {
+  await open(page, "settings");
+  await page.getByRole("heading", { name: "Change log" }).waitFor();
+
+  await page.getByRole("button", { name: "Move Idea down" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Idea moved to position 2 of 6.")).toBeAttached();
+
+  let reachedSave = false;
+  for (let press = 0; press < 80 && !reachedSave; press += 1) {
+    await page.keyboard.press("Tab");
+    reachedSave = await page.evaluate(() => document.activeElement?.textContent === "Save");
+  }
+  expect(reachedSave).toBe(true);
 });
 
 test.describe("at the width of 400 % zoom", () => {

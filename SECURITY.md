@@ -6,7 +6,7 @@ See [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for the latest review and what came o
 
 ## Reporting a vulnerability
 
-Report vulnerabilities privately through [GitHub's vulnerability reporting](https://github.com/andersmoldin/Waypoint/security/advisories/new), not in a public issue. Describe what an attacker can do, which version you tested and how to reproduce it.
+Report vulnerabilities privately through [GitHub's vulnerability reporting](https://github.com/andersmoldin/Waypoint/security/advisories/new), not in a public issue. Describe what an attacker can do, which version you tested and how to reproduce it. If that form does not work for you, open an issue that asks for a private way to report, without any details.
 
 Waypoint is run by one private person, on a best-effort basis and without guarantees. There are no promised times for answering a report, for fixing a vulnerability or for updating a dependency. Only the latest version on the Visual Studio Marketplace gets fixes. Weigh this before you install Waypoint.
 

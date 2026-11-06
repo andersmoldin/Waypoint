@@ -171,12 +171,18 @@ async function readInBatches(platform: Platform, projectId: string, ids: number[
   }
   const answers = new Array<WorkItem[]>(batches.length);
   let next = 0;
-  const readOneAtATime = async () => {
+  const readBatches = async () => {
     while (next < batches.length) {
       const index = next++;
-      answers[index] = await platform.getWorkItemsBatch(projectId, batches[index], fields);
+      try {
+        answers[index] = await platform.getWorkItemsBatch(projectId, batches[index], fields);
+      } catch (error) {
+        // The read has failed as a whole, and more questions only add to it if Azure DevOps is asking for fewer.
+        next = batches.length;
+        throw error;
+      }
     }
   };
-  await Promise.all(Array.from({ length: MAX_BATCHES_AT_ONCE }, readOneAtATime));
+  await Promise.all(Array.from({ length: MAX_BATCHES_AT_ONCE }, readBatches));
   return answers.flat();
 }

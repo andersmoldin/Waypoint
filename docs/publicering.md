@@ -14,9 +14,9 @@ Den första publika versionen är taggen `v2026.11.0`.
 
 ### Hur publiceringen går till
 
-Publiceringsjobbet kör varken Node eller npm-paket, bara `curl` och `jq`. Det är där credentialen finns, och ett komprometterat paket skulle där kunna hämta fler credentials eller byta ut filen, också efter ett godkännande. `tfx` används bara för att bygga paketet, i jobbet före.
+Publiceringsjobbet kör inga npm-paket, bara `curl`, `jq` och `unzip` från runnern och de två låsta GitHub-actionen som hämtar filerna. Det är där credentialen finns, och ett komprometterat paket skulle där kunna hämta fler credentials eller byta ut filen, också efter ett godkännande. `tfx` används bara för att bygga paketet, i jobbet före.
 
-`scripts/publishToMarketplace.sh` gör två saker i ordning, med ett nytt credential för varje fas (de lever i 15 minuter):
+`scripts/publishToMarketplace.sh` gör två saker i ordning:
 
 1. Laddar upp vsix-filen med `PUT` om extensionen finns och `POST` om Marketplace svarar 404. Svarar Marketplace något annat laddas inget upp.
 2. Frågar Marketplace om valideringen var 20:e sekund, i högst 25 minuter. Credentialen byts ut var tionde minut under väntan.
@@ -126,7 +126,7 @@ Specen ([#1](https://github.com/andersmoldin/Waypoint/issues/1)) säger att end-
 
 Kravet i sig ligger kvar: inget publiceras utan ett grönt test av just den commiten. Priset är ett kommando per release. Statusen är självrapporterad, men grinden räknar bara en status från ägaren. Testet gäller dev-bygget av commiten: den publika vsix-filen byggs för sig, så det är inte samma fil som har testats.
 
-`npm ci` kör inga install-skript, eftersom `.npmrc` stänger av dem. Ägarens `gh`-inloggning kan ändå göra allt som krävs för en release, så ägarens dator hör till det som måste vara pålitligt. Logga inte in i testets webbläsare med det Microsoft-konto som äger publishern.
+`npm ci` kör inga install-skript, eftersom `.npmrc` stänger av dem. Ägarens dator hör ändå till det som måste vara pålitligt. Logga inte in i testets webbläsare med det Microsoft-konto som äger publishern.
 
 Vilket konto testet körs med står inte i repot, och en användare kan inte läsa sin egen åtkomstnivå. Därför bekräftar ägaren det i steg 3.
 
@@ -161,7 +161,7 @@ Stegen görs före den första taggen. Grinden avbryter om granskaren saknas, s�
    | Workflow    | `publish-public.yml` |
    | Environment | `marketplace`        |
 
-3. **Skydda release-taggarna (krävs före den första taggen).** Kontot `andersmoldin-agent` har skrivrätt till repot, så fler än ägaren kan annars skapa en tag, och en tag startar release-flödet. Bara ägaren ska få skapa, flytta eller ta bort en tag:
+3. **Skydda release-taggarna (krävs före den första taggen).** En tag startar release-flödet, så bara ägaren ska få skapa, flytta eller ta bort en:
 
    ```sh
    owner_role_id=5 # Repository admin, som bara ägaren har.
@@ -231,13 +231,14 @@ Reserven används bara om Marketplace avvisar credentialen från Trusted Publish
      <<< "header = \"Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}\"" | jq --exit-status --raw-output .value)"
    echo "::add-mask::${github_token}"
 
-   use_credential "$(curl --silent --show-error --fail-with-body --config - \
+   credential="$(curl --silent --show-error --fail-with-body --config - \
      "https://login.microsoftonline.com/${ENTRA_TENANT_ID}/oauth2/v2.0/token" \
      --data-urlencode "client_id=${ENTRA_CLIENT_ID}" \
      --data-urlencode "grant_type=client_credentials" \
      --data-urlencode "scope=499b84ac-1321-427f-aa17-267ca6975798/.default" \
      --data-urlencode "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
      <<< "data-urlencode = \"client_assertion=${github_token}\"" | jq --exit-status --raw-output .access_token)"
+   use_credential "${credential}"
    ```
 
 4. Hämta varje service principals identitets-id genom att logga in som den och anropa `https://app.vssps.visualstudio.com/_apis/profile/profiles/me` med Entra-tokenet. Svarets `id` är det som behövs.

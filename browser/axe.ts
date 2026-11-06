@@ -14,8 +14,9 @@ export async function axeViolations(target: Page | Frame): Promise<unknown[]> {
   return target.evaluate(async () => {
     const { violations } = await (window as unknown as AxeRun).axe.run(document, {
       rules: {
-        // Off by default as experimental, but it is WCAG's 2.5.3.
+        // Off by default, but they are WCAG's 2.5.3 and 2.5.8.
         "label-content-name-mismatch": { enabled: true },
+        "target-size": { enabled: true },
         // A best practice, not a WCAG rule: the library's tooltips live in a portal outside every landmark, and they repeat a button's name.
         region: { enabled: false },
       },

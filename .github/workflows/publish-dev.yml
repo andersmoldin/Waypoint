@@ -17,8 +17,8 @@ jobs:
   package:
     runs-on: ubuntu-24.04
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      sha256: ${{ steps.version.outputs.sha256 }}
+      version: ${{ steps.package.outputs.version }}
+      sha256: ${{ steps.package.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,7 +29,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build the vsix as YYYY.M.<run number>
-        id: version
+        id: package
         run: |
           version="$(date -u +%Y.%-m).${GITHUB_RUN_NUMBER}"
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
@@ -45,7 +45,7 @@ jobs:
           retention-days: 7
 
   # Separate from package so that the dependencies and the build never run in a job
-  # that can request an identity token. No Node and no npm package runs here.
+  # that can request an identity token. No npm package runs here, and the only JavaScript is the two pinned actions.
   publish:
     needs: package
     runs-on: ubuntu-24.04

@@ -35,16 +35,16 @@ const scenario = new URLSearchParams(location.search).get("scenario") ?? "board"
 if (scenario === "settings") {
   ReactDOM.render(<SettingsPanel platform={createFakePlatform({ ...withSettings(SETTINGS), isAdministrator: true })} />, root);
 } else if (scenario !== "empty") {
-  ReactDOM.render(<Hub platform={createFakePlatform(SCENARIOS[scenario])} />, root);
+  const world = SCENARIOS[scenario];
+  if (!world) throw new Error(`No scenario called ${scenario}.`);
+  ReactDOM.render(<Hub platform={createFakePlatform(world)} />, root);
 }
-
-const FIELD = { ...CURRENT_SITUATION, referenceName: "f" };
 
 /** What the checks reach from outside the page. */
 Object.assign(window, {
   waypointChecks: {
     /** The real reading of a field of type html, as a card does it. */
-    readHtml: (html: string) => fieldText({ id: 1, fields: { f: html } }, FIELD),
+    readHtml: (html: string) => fieldText({ id: 1, fields: { [CURRENT_SITUATION.referenceName]: html } }, CURRENT_SITUATION),
     /** The real hub with the value in every free text role of one card. */
     showBoardWith: (value: string) =>
       ReactDOM.render(

@@ -664,6 +664,20 @@ describe("dimming through the group list", () => {
 });
 
 describe("reading many objects", () => {
+  it("asks for no more batches once one has failed", async () => {
+    const processes = Array.from({ length: 2_000 }, (_, index) => process(100 + index, `Process ${index}`, "Idéfas", 1));
+    const platform = createFakePlatform(lifecycleWorld([bodil, ...processes]));
+    let asked = 0;
+    platform.getWorkItemsBatch = async () => {
+      asked += 1;
+      throw new Error("TF400733: Too many requests.");
+    };
+    renderHub(platform);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Too many requests");
+    expect(asked).toBeLessThanOrEqual(6);
+  });
+
   it("asks a few batches at a time, and gets them all", async () => {
     const processes = Array.from({ length: 2_000 }, (_, index) => process(100 + index, `Process ${index}`, "Idéfas", 1));
     const platform = createFakePlatform(lifecycleWorld([bodil, ...processes]));
@@ -1043,7 +1057,7 @@ describe("hidden groups", () => {
       ),
     );
 
-    expect((await screen.findByText(/All 2 objects are in groups hidden in Waypoint's settings/)).textContent).toContain("A Project Administrator can change this");
+    expect((await screen.findByText(/Every object is in a group hidden in Waypoint's settings/)).textContent).toContain("A Project Administrator can change this");
     await expectNoAccessibilityViolations();
   });
 

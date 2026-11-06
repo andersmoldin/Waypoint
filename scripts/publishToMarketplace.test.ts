@@ -188,6 +188,13 @@ describe("a failed publish", () => {
     expect(uploads()).toEqual([]);
   });
 
+  it("uploads nothing when the answer to the token exchange holds no credential", async () => {
+    marketplace.exchange = { status: 200, body: {} };
+
+    await failsWith("without a credential");
+    expect(uploads()).toEqual([]);
+  });
+
   it("uploads nothing when Marketplace refuses the token exchange", async () => {
     marketplace.exchange = { status: 403, body: { message: "No policy." } };
 

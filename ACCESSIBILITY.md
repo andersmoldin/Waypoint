@@ -11,12 +11,12 @@ Waypoint aims for WCAG 2.2 AA. This report says what has been verified, by whom 
 | axe-core 4.14 in jsdom | In the test suite, for the hub, its messages, the filter row, dropdowns, the detail panel and the settings panel (`npm test`). jsdom cannot measure contrast. | Automated, on every pull request | No violations |
 | axe-core 4.14 in real Chrome, with contrast | 10 states with and without forced colors: the board, the filter row, an open dropdown, an active filter with the row closed, the detail panel, dimmed cards, four messages and the settings panel, with invented data on the real page (`npm run browser`) | Automated, on every pull request | No violations, apart from the rule below |
 | axe-core on the real Azure DevOps page | One test in `npm run e2e`, in the colors of the account's theme | Added here, and not yet run. The owner runs it for each release, and the release gate requires it to be green. | Not run yet |
-| Keyboard | Playwright in Chrome: Tab reaches the filter, tabs, groups, board and cards, the arrow keys reach the gear, and Esc closes the panel and gives focus back | Automated, on every pull request | Passes |
+| Keyboard | Playwright in Chrome: Tab reaches the filter, tabs, groups, board and cards, the arrow keys reach the gear, Esc closes the panel and gives focus back, a filter's dropdown can be opened and chosen in, and in the settings a phase can be moved and Save reached | Automated, on every pull request | Passes |
 | Forced colors | The filter icon's dot, on light and dark backgrounds, and that it stays visible when a theme's blue is the color of the button | Automated, on every pull request | Passes |
 | Reflow | At 320 px wide, only the board scrolls sideways (WCAG 1.4.10 exempts a board that needs two dimensions) | Automated, on every pull request | Passes |
 | VoiceOver | | Nobody yet | **Not done** |
 
-axe-core runs with the rule `label-content-name-mismatch` turned on, since it is WCAG's 2.5.3. The rule `region` is off: it is a best practice and not a WCAG requirement, and it only objects to the library's tooltips, which live outside every landmark and repeat a button's name.
+axe-core runs with the rules `label-content-name-mismatch` and `target-size` turned on, since they are WCAG's 2.5.3 and 2.5.8 and off by default. The rule `region` is off: it is a best practice and not a WCAG requirement, and it only objects to the library's tooltips, which live outside every landmark and repeat a button's name.
 
 In forced colors axe-core cannot decide the contrast of some text, such as a primary button's. Screenshots checked by the reviewing agent show that text as readable.
 
@@ -38,7 +38,7 @@ Not a full list: these are where the board has something of its own to get right
 | 1.3.1 | Headings, lists, tabs and regions have their roles. Lists keep an explicit role, which VoiceOver is otherwise known to drop. | axe-core, tests. VoiceOver not run |
 | 1.4.1 | Yellow is never alone: "Waiting on:" is written out. Dimmed cards are not the only signal, since the group's own cards are marked current. A group's color always has its name. | Tests |
 | 1.4.3, 1.4.11 | Contrast in the light theme, with the library's fallback colors. | axe-core in Chrome. Real themes not run |
-| 2.1.1, 2.4.3 | All of it works from the keyboard, and focus returns from the panel to the card. | Playwright in Chrome |
+| 2.1.1, 2.4.3 | The main paths work from the keyboard, and focus returns from the panel to the card. Every path has not been walked through. | Playwright in Chrome |
 | 2.4.7 | Cards, groups and the library's controls show focus. | Styles reviewed. Not measured |
 | 2.5.3 | Names hold the words shown. | axe-core in Chrome, tests |
 | 2.5.7 | Phases and fields can be moved with buttons as well as by dragging. | Tests |

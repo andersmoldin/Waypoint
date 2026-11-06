@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NO_FILTER, buildBoard, isFilterActive, shownGroups, type Board, type BoardFilter, type BoardFilterField } from "../board/boardModel";
 import { loadBoard, type Guess, type LoadedBoard } from "../board/loadBoard";
 import type { Platform } from "../platform/platform";
+import { RenderFailureBoundary } from "../RenderFailureBoundary";
 import { InvalidSettingsError, goneFieldsMessage } from "../settings/settings";
 import { FilterRow, filterCommand, focusFilterCommand } from "./FilterRow";
 import { PhaseBoard, formatCount } from "./PhaseBoard";
@@ -78,7 +79,7 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
         });
         if (Object.keys(toWrite).length > 0) writeToUrl(toWrite);
       })
-      // After the answer as well, since a page left on "Loading…" says nothing about what went wrong.
+      // Also what fails while the answer is used, since a page left on "Loading…" says nothing about what went wrong.
       .catch((error: Error) => unmounted || setState({ status: "failed", reason: error.message, settingsAreInvalid: error instanceof InvalidSettingsError }));
     return () => {
       unmounted = true;
@@ -180,8 +181,15 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
             <MessageCard severity={MessageCardSeverity.Warning}>{linkFailure}</MessageCard>
           </PageContent>
         )}
-        {/* New for each load, so that what saved settings mend also comes back. */}
-        <RenderFailureBoundary key={timesSaved}>
+        {/* Outside it, the gear stays as the way to a repair. New for each save, so that a save that repairs the settings brings the board back. */}
+        <RenderFailureBoundary
+          key={timesSaved}
+          whenFailed={(reason) => (
+            <PageContent>
+              <MessageCard severity={MessageCardSeverity.Error}>Waypoint could not show the board: {reason}</MessageCard>
+            </PageContent>
+          )}
+        >
           <HubContent
             state={state}
             platform={platform}
@@ -193,26 +201,6 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
       </Page>
     </main>
   );
-}
-
-/** Without this, React empties the whole page when something in the board throws. Outside it, the gear stays, as the way to a mend. */
-class RenderFailureBoundary extends React.Component<{ children: React.ReactNode }, { reason: string | null }> {
-  state: { reason: string | null } = { reason: null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { reason: error.message };
-  }
-
-  render() {
-    const { reason } = this.state;
-    return reason === null ? (
-      this.props.children
-    ) : (
-      <PageContent>
-        <MessageCard severity={MessageCardSeverity.Error}>Waypoint could not show the board: {reason}</MessageCard>
-      </PageContent>
-    );
-  }
 }
 
 /** `openSettings` is null when the user cannot open the settings. */
@@ -308,10 +296,8 @@ function LoadedHub({
           </MessageCard>
         ))}
         {goneFields.length > 0 && <GoneFieldsWarning goneFields={goneFields} />}
-        {board.objectsAllHidden !== null && (
-          <MessageCard severity={MessageCardSeverity.Info}>
-            {`All ${formatCount(board.objectsAllHidden)} objects are in groups hidden in Waypoint's settings. A Project Administrator can change this.`}
-          </MessageCard>
+        {board.allObjectsHidden && (
+          <MessageCard severity={MessageCardSeverity.Info}>Every object is in a group hidden in Waypoint's settings. A Project Administrator can change this.</MessageCard>
         )}
         <div className="flex-column rhythm-vertical-16" role="tabpanel" aria-labelledby={getSafeId(`tab-${selectedIndex}`)}>
           <PhaseBoard columns={board.tabs[selectedIndex].columns} groups={board.groups} truncation={board.truncation} platform={platform} />

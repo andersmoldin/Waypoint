@@ -72,7 +72,7 @@ jobs:
           retention-days: 7
 
   # Separate from package so that the dependencies and the build never run in a job that
-  # can request an identity token. No Node and no npm package runs here. The Trusted Publishing
+  # can request an identity token. No npm package runs here, and the only JavaScript is the two pinned actions. The Trusted Publishing
   # policy only accepts this environment, and the environment waits for the owner's approval.
   publish:
     needs: [gate, package]
