@@ -1,0 +1,187 @@
+.waypoint-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  list-style: none;
+}
+
+.waypoint-group {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 2px;
+  overflow-wrap: anywhere;
+}
+
+.waypoint-group:hover {
+  background-color: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.06));
+}
+
+.waypoint-group:focus {
+  outline: 2px solid currentColor;
+}
+
+.waypoint-group-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.waypoint-board {
+  /* Without it the absolutely positioned screen-reader-only spans escape the
+     overflow below, and the whole page gets wider than the window. */
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.waypoint-divider {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  /* At the top, since a column can be far taller than the window and the middle out of sight. */
+  align-items: flex-start;
+  justify-content: center;
+  width: 26px;
+  padding-top: 8px;
+  /* The same color as secondary text, so that the line stands out from the page by at least 3:1 in both themes. */
+  border-left: 2px dashed var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+}
+
+.waypoint-divider-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+}
+
+.waypoint-column {
+  flex: 1 1 220px;
+  min-width: 200px;
+  border-radius: 4px;
+  background-color: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.06));
+}
+
+.waypoint-column-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.waypoint-column-count {
+  flex: none;
+  font-size: 12px;
+}
+
+.waypoint-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 8px 8px;
+  list-style: none;
+}
+
+.waypoint-card {
+  /* Holds the button's click area, and keeps the screen-reader-only text from widening the board. */
+  position: relative;
+  border-left: 4px solid var(--palette-black-alpha-20, rgba(0, 0, 0, 0.2));
+  border-radius: 2px;
+  background-color: var(--callout-background-color, #fff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+/* Light enough to see the difference, dark enough that the text stays above a contrast of 4.5:1. */
+.waypoint-card-dimmed {
+  opacity: 0.65;
+}
+
+.waypoint-card[aria-current="true"] {
+  outline: 2px solid currentColor;
+}
+
+.waypoint-card-button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The current situation stays out of the button's name, but a click on it is a click on the card. */
+.waypoint-card-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* The ring goes around the whole card, as it would otherwise cut through the current situation. */
+.waypoint-card-button:focus-visible {
+  outline: none;
+}
+
+.waypoint-card-button:focus-visible::after {
+  outline: auto;
+}
+
+.waypoint-card-group {
+  order: -1;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.waypoint-card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Margins, as padding would show the start of a third line. */
+.waypoint-card-situation {
+  display: -webkit-box;
+  margin: -4px 12px 8px;
+  overflow: hidden;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* The same colors in every theme, so the text keeps its contrast against the yellow, also on a dimmed card. */
+.waypoint-card-waiting {
+  padding: 2px 6px;
+  border-radius: 2px;
+  background-color: #fff4ce;
+  color: #201f1e;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.waypoint-card-marker {
+  align-self: flex-start;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

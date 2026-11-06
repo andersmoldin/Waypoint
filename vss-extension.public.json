@@ -1,0 +1,20 @@
+{
+  "id": "waypoint",
+  "name": "Waypoint",
+  "description": "A read-only lifecycle board for Azure Boards. See which phase every work item is in, which group it belongs to and whether it is waiting for something.",
+  "public": true,
+  "tags": ["lifecycle", "board", "phases", "read-only", "portfolio"],
+  "branding": { "color": "#2b1d6e", "theme": "dark" },
+  "content": {
+    "details": { "path": "README.md" },
+    "license": { "path": "LICENSE" }
+  },
+  "links": {
+    "license": { "uri": "https://github.com/andersmoldin/Waypoint/blob/main/LICENSE" },
+    "privacypolicy": { "uri": "https://github.com/andersmoldin/Waypoint/blob/main/PRIVACY.md" },
+    "support": { "uri": "https://github.com/andersmoldin/Waypoint/issues" }
+  },
+  "repository": { "type": "git", "uri": "https://github.com/andersmoldin/Waypoint" },
+  "screenshots": [{ "path": "images/screenshots/board.png" }],
+  "files": [{ "path": "images/screenshots", "addressable": true }]
+}

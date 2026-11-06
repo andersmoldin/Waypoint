@@ -1,0 +1,50 @@
+{
+  "name": "waypoint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Waypoint, a read-only lifecycle hub for Azure Boards.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint . && tsc --noEmit && tsc --noEmit --project tsconfig.tools.json",
+    "test": "vitest run",
+    "build": "npm run build:web && npm run package:public && npm run package:dev && scripts/verifyVsix.sh out/waypoint.vsix waypoint 0.0.0 public && scripts/verifyVsix.sh out/waypoint-dev.vsix waypoint-dev 0.0.0 private",
+    "build:web": "webpack --mode production",
+    "package:dev": "tfx extension create --manifest-globs vss-extension.json vss-extension.dev.json --output-path out/waypoint-dev.vsix --no-prompt",
+    "package:public": "tfx extension create --manifest-globs vss-extension.json vss-extension.public.json --output-path out/waypoint.vsix --no-prompt",
+    "icons": "node --no-warnings scripts/generateIcons.ts",
+    "screenshots": "node --no-warnings scripts/generateScreenshots.ts",
+    "e2e": "node --no-warnings scripts/runE2e.ts"
+  },
+  "overrides": {
+    "azure-devops-extension-api": {
+      "azure-devops-extension-sdk": "$azure-devops-extension-sdk"
+    }
+  },
+  "dependencies": {
+    "azure-devops-extension-api": "5.280.1",
+    "azure-devops-extension-sdk": "5.0.0",
+    "azure-devops-ui": "2.281.0",
+    "react": "16.14.0",
+    "react-dom": "16.14.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@testing-library/react": "12.1.5",
+    "@types/node": "24.19.2",
+    "@types/react": "16.14.70",
+    "@types/react-dom": "16.9.25",
+    "axe-core": "4.14.0",
+    "css-loader": "7.1.5",
+    "eslint": "10.14.0",
+    "html-webpack-plugin": "5.6.8",
+    "jsdom": "31.0.0",
+    "style-loader": "4.0.0",
+    "tfx-cli": "0.24.2",
+    "ts-loader": "9.6.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0",
+    "webpack": "5.112.2",
+    "webpack-cli": "7.3.1"
+  }
+}

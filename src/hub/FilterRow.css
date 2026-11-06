@@ -1,0 +1,20 @@
+.waypoint-filter-dot {
+  position: relative;
+}
+
+.waypoint-filter-dot::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--communication-background, rgba(0, 120, 212, 1));
+}
+
+@media (forced-colors: active) {
+  .waypoint-filter-dot::after {
+    background-color: Highlight;
+  }
+}

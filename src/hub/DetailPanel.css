@@ -1,0 +1,31 @@
+.waypoint-detail-panel-frame {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  /* Lets the panel's content scroll between its header and footer. */
+  min-height: 0;
+}
+
+.waypoint-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.waypoint-details {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(0, 2fr);
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.waypoint-details dt {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.waypoint-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,105 @@
+.waypoint-settings {
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.waypoint-settings-section {
+  /* Keeps the absolutely positioned screen-reader-only text inside what scrolls. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waypoint-settings-heading {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.waypoint-settings-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.waypoint-phase-order,
+.waypoint-hidden-groups,
+.waypoint-tab-list,
+.waypoint-filter-list,
+.waypoint-filter-tags,
+.waypoint-detail-fields,
+.waypoint-change-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waypoint-phase,
+.waypoint-detail-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--palette-black-alpha-10, rgba(0, 0, 0, 0.1));
+}
+
+.waypoint-phase {
+  cursor: grab;
+}
+
+.waypoint-phase-name,
+.waypoint-detail-field-name {
+  flex-grow: 1;
+  overflow-wrap: anywhere;
+}
+
+.waypoint-tab-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.waypoint-tab-name {
+  flex-grow: 1;
+}
+
+.waypoint-add-tab,
+.waypoint-add-filter {
+  margin: 4px 0 8px;
+}
+
+.waypoint-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--palette-black-alpha-10, rgba(0, 0, 0, 0.1));
+}
+
+.waypoint-remove-filter {
+  align-self: flex-end;
+}
+
+.waypoint-phase-placement {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.waypoint-phase-placement caption {
+  text-align: left;
+}
+
+.waypoint-phase-placement th,
+.waypoint-phase-placement td {
+  padding: 4px 8px 4px 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  font-weight: 400;
+}
+
+.waypoint-phase-placement thead th {
+  font-weight: 600;
+}

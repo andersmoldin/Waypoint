@@ -1,0 +1,11 @@
+{
+  // Scripts and end-to-end tests run in Node, and the hub's code must not see Node's types.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "allowJs": true,
+    "types": ["node"]
+  },
+  "include": ["scripts", "e2e", "playwright.config.ts"]
+}

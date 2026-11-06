@@ -1,0 +1,35 @@
+{
+  "manifestVersion": 1,
+  "publisher": "andersmoldin",
+  "version": "0.0.0",
+  "categories": ["Azure Boards"],
+  "targets": [{ "id": "Microsoft.VisualStudio.Services" }],
+  "scopes": ["vso.work"],
+  "icons": { "default": "images/icons/waypoint-light-128.png" },
+  "files": [
+    { "path": "dist", "addressable": true },
+    { "path": "images/icons", "addressable": true }
+  ],
+  "contributions": [
+    {
+      "id": "waypoint-hub",
+      "type": "ms.vss-web.hub",
+      "targets": ["ms.vss-work-web.work-hub-group"],
+      "properties": {
+        "name": "Waypoint",
+        "uri": "dist/hub.html",
+        "icon": {
+          "light": "images/icons/waypoint-hub-light-32.png",
+          "dark": "images/icons/waypoint-hub-dark-32.png"
+        }
+      }
+    },
+    {
+      "id": "waypoint-settings-panel",
+      "type": "ms.vss-web.external-content",
+      "properties": {
+        "uri": "dist/settings.html"
+      }
+    }
+  ]
+}
