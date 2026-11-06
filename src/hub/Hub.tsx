@@ -61,8 +61,8 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
         view: readViewState({}),
         failure: `Waypoint could not read the link, so it shows the first tab without a filter: ${error.message}`,
       }));
-    Promise.all([loadBoard(platform), link]).then(
-      ([loaded, { parameters, view, failure }]) => {
+    Promise.all([loadBoard(platform), link])
+      .then(([loaded, { parameters, view, failure }]) => {
         if (unmounted) return;
         const { source } = loaded;
         // A tab the board does not have counts for nothing, and the first tab shows.
@@ -77,10 +77,9 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
           ...filterParameters(filter, source.filterFields),
         });
         if (Object.keys(toWrite).length > 0) writeToUrl(toWrite);
-      },
-      (error: Error) =>
-        unmounted || setState({ status: "failed", reason: error.message, settingsAreInvalid: error instanceof InvalidSettingsError }),
-    );
+      })
+      // After the answer as well, since a page left on "Loading…" says nothing about what went wrong.
+      .catch((error: Error) => unmounted || setState({ status: "failed", reason: error.message, settingsAreInvalid: error instanceof InvalidSettingsError }));
     return () => {
       unmounted = true;
     };
@@ -181,16 +180,39 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
             <MessageCard severity={MessageCardSeverity.Warning}>{linkFailure}</MessageCard>
           </PageContent>
         )}
-        <HubContent
-          state={state}
-          platform={platform}
-          openSettings={openSettingsIfAllowed}
-          onTabChosen={onTabChosen}
-          filterHandlers={{ onFilterChanged, onFilterRowDismissed }}
-        />
+        {/* New for each load, so that what saved settings mend also comes back. */}
+        <RenderFailureBoundary key={timesSaved}>
+          <HubContent
+            state={state}
+            platform={platform}
+            openSettings={openSettingsIfAllowed}
+            onTabChosen={onTabChosen}
+            filterHandlers={{ onFilterChanged, onFilterRowDismissed }}
+          />
+        </RenderFailureBoundary>
       </Page>
     </main>
   );
+}
+
+/** Without this, React empties the whole page when something in the board throws. Outside it, the gear stays, as the way to a mend. */
+class RenderFailureBoundary extends React.Component<{ children: React.ReactNode }, { reason: string | null }> {
+  state: { reason: string | null } = { reason: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { reason: error.message };
+  }
+
+  render() {
+    const { reason } = this.state;
+    return reason === null ? (
+      this.props.children
+    ) : (
+      <PageContent>
+        <MessageCard severity={MessageCardSeverity.Error}>Waypoint could not show the board: {reason}</MessageCard>
+      </PageContent>
+    );
+  }
 }
 
 /** `openSettings` is null when the user cannot open the settings. */
@@ -286,6 +308,11 @@ function LoadedHub({
           </MessageCard>
         ))}
         {goneFields.length > 0 && <GoneFieldsWarning goneFields={goneFields} />}
+        {board.objectsAllHidden !== null && (
+          <MessageCard severity={MessageCardSeverity.Info}>
+            {`All ${formatCount(board.objectsAllHidden)} objects are in groups hidden in Waypoint's settings. A Project Administrator can change this.`}
+          </MessageCard>
+        )}
         <div className="flex-column rhythm-vertical-16" role="tabpanel" aria-labelledby={getSafeId(`tab-${selectedIndex}`)}>
           <PhaseBoard columns={board.tabs[selectedIndex].columns} groups={board.groups} truncation={board.truncation} platform={platform} />
         </div>

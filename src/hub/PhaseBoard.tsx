@@ -132,12 +132,14 @@ function PhaseColumn({
           <span className="screen-reader-only"> {column.total === 1 ? "object" : "objects"}</span>
         </span>
       </h2>
-      {/* The explicit role keeps the list a list in VoiceOver, which drops it along with the list style. */}
-      <ul className="waypoint-cards" role="list" aria-labelledby={headingId}>
-        {column.cards.map((card) => (
-          <PhaseCard key={card.id} card={card} emphasis={emphasisOf(card, highlightedGroup)} onOpen={onOpen} />
-        ))}
-      </ul>
+      {/* The explicit role keeps the list a list in VoiceOver, which drops it along with the list style. A list of nothing is left out: the heading already says 0. */}
+      {shown > 0 && (
+        <ul className="waypoint-cards" role="list" aria-labelledby={headingId}>
+          {column.cards.map((card) => (
+            <PhaseCard key={card.id} card={card} emphasis={emphasisOf(card, highlightedGroup)} onOpen={onOpen} />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

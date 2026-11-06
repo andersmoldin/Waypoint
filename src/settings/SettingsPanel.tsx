@@ -59,6 +59,8 @@ export function SettingsPanel({ platform }: { platform: Platform }): React.JSX.E
 
   return (
     <main className="waypoint-settings flex-column flex-grow" aria-label="Waypoint settings">
+      {/* The title the host shows lies in another frame, so a screen reader in this one needs a heading of its own to start from. */}
+      <h1 className="screen-reader-only">Waypoint settings</h1>
       <RenderFailureBoundary platform={platform}>
         <PanelLoader platform={platform} />
       </RenderFailureBoundary>
@@ -174,11 +176,16 @@ function useSaving(platform: Platform, projectId: string, revision: number | nul
     try {
       const user = await platform.getCurrentUser();
       const entry = { at: Date.now(), userId: user.id, userName: user.displayName };
-      await platform.saveSettingsDocument(projectId, documentAfterChange(settings, log, entry), revision);
+      const document = documentAfterChange(settings, log, entry);
+      // The hub would refuse what it cannot read back, and every viewer would pay for it.
+      parseSettingsDocument(document);
+      await platform.saveSettingsDocument(projectId, document, revision);
     } catch (error) {
       // A save that timed out may still have gone through, so this cannot say that nothing changed.
       setFailure(
-        `Waypoint could not save the settings: ${(error as Error).message} Close the settings and open them again to see what is saved, for example if someone else has saved in the meantime.`,
+        error instanceof InvalidSettingsError
+          ? `Waypoint did not save the settings, since the hub could not have read them. ${error.message}`
+          : `Waypoint could not save the settings: ${(error as Error).message} Close the settings and open them again to see what is saved, for example if someone else has saved in the meantime.`,
       );
       setSaving(false);
       return;

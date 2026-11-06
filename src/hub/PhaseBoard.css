@@ -166,14 +166,22 @@
   -webkit-line-clamp: 2;
 }
 
-/* The same colors in every theme, so the text keeps its contrast against the yellow, also on a dimmed card. */
+/*
+ * The same colors in every theme, so the text keeps its contrast against the yellow, also on a dimmed card.
+ * At most two lines, as the current situation, so that one card cannot push the rest of its column out of
+ * sight. All of it is in the detail panel.
+ */
 .waypoint-card-waiting {
+  display: -webkit-box;
   padding: 2px 6px;
+  overflow: hidden;
   border-radius: 2px;
   background-color: #fff4ce;
   color: #201f1e;
   font-size: 12px;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .waypoint-card-marker {

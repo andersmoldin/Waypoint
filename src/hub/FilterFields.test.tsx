@@ -74,6 +74,31 @@ const clickOption = (text: string) => fireEvent.click(screen.getAllByRole("optio
 const typeText = (name: string, text: string) => fireEvent.change(screen.getByRole("textbox", { name }), { target: { value: text } });
 const inUrl = async (platform: { getQueryParams(): Promise<Record<string, string>> }) => platform.getQueryParams();
 
+describe("the name of a dropdown", () => {
+  const named = (name: string) => dropdown(name).getAttribute("aria-label");
+
+  it("holds the words it shows, which voice control goes by", async () => {
+    await openedWithRow();
+
+    expect(named("Väntar på")).toBe("Väntar på: All");
+    expect(named("Förvaltningsområde")).toBe("Förvaltningsområde");
+    expect(named("Group")).toBe("Group");
+  });
+
+  it("follows what is chosen, also of several", async () => {
+    await openedWithRow();
+
+    fireEvent.click(dropdown("Väntar på"));
+    clickOption("Waiting");
+    expect(named("Väntar på")).toBe("Väntar på: Waiting");
+
+    fireEvent.click(dropdown("IT-stöd"));
+    clickOption("Dokportalen");
+    clickOption("Ärendesystemet");
+    expect(named("IT-stöd")).toBe("IT-stöd: Dokportalen (+1)");
+  });
+});
+
 describe("a filter field of one choice", () => {
   it("offers the picklist's values, narrows the board to the one chosen and says so in the URL", async () => {
     const platform = await openedWithRow();
@@ -165,7 +190,7 @@ describe("a filter field of tags with a prefix", () => {
     expect(screen.queryByRole("button", { name: /^IT-stöd/ })).toBeNull();
     expect(screen.getByRole("textbox", { name: "GKL starts with" })).toBeTruthy();
     const warning = screen.getByText(/could not read the project's tags/);
-    expect(warning.textContent).toContain("IT-stöd");
+    expect(warning.textContent).toContain("left out 1 filter");
     expect(warning.textContent).toContain("TF400813");
     expect((await inUrl(platform))["filter.IT-stöd"]).toBe("IT-stöd: Dokportalen");
   });
@@ -396,7 +421,7 @@ describe("a filter field whose field is gone", () => {
     expect(cardTitles()).toEqual(EVERYTHING);
     expect(screen.queryByRole("textbox", { name: "Borttaget starts with" })).toBeNull();
     expect(screen.getByRole("textbox", { name: "GKL starts with" })).toBeTruthy();
-    expect(screen.getByText(/left out these filters/).textContent).toContain("Borttaget");
+    expect(screen.getByText(/left out 1 filter/).textContent).toContain("A Project Administrator");
   });
 
   it("keeps its place in a link, so that the link holds if the field comes back, and the rest still narrows", async () => {

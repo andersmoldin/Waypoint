@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFakePlatform, type FakePlatform } from "../platform/fakePlatform";
 import { expectNoAccessibilityViolations, renderHub } from "../testing/hubRig";
 import {
@@ -25,8 +25,10 @@ const columnNames = () => within(screen.getByRole("region", { name: "Board" })).
 
 const groupNames = () => within(screen.getByRole("list", { name: "Groups" })).getAllByRole("listitem").map((item) => item.textContent);
 
-const cardsIn = (phase: string) =>
-  within(screen.getByRole("list", { name: (name) => name.startsWith(`${phase} `) })).queryAllByRole("listitem");
+const cardsIn = (phase: string) => {
+  const cards = screen.queryByRole("list", { name: (name) => name.startsWith(`${phase} `) });
+  return cards ? within(cards).queryAllByRole("listitem") : [];
+};
 
 describe("Waypoint hub", () => {
   it("opens with its name", async () => {
@@ -43,6 +45,49 @@ describe("Waypoint hub", () => {
     expect(alert.textContent).toContain("Waypoint could not load the board");
     expect(alert.textContent).toContain("did not answer within 30 seconds");
     await expectNoAccessibilityViolations();
+  });
+});
+
+describe("when something unexpected comes back", () => {
+  it("says so and keeps the gear when the board cannot be drawn", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const broken = {
+      get displayName(): string {
+        throw new Error("Ett värde ingen väntat sig.");
+      },
+    };
+    renderHub(
+      createFakePlatform(
+        lifecycleWorld([bodil, { ...process(11, "En process", "Idéfas", 1), fields: { ...process(11, "En process", "Idéfas", 1).fields, [ASSIGNED_TO.referenceName]: broken } }], {
+          isAdministrator: true,
+          savedSettings: { "project-1": savedSettings({ detailFields: [ASSIGNED_TO.referenceName] }) },
+        }),
+      ),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Waypoint could not show the board: Ett värde ingen väntat sig.");
+    expect(await screen.findByRole("button", { name: "Settings" })).toBeTruthy();
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["a filter field", { "filter.GKL": ["7.3"] }],
+    ["the keyword", { keyword: 7 }],
+    ["the groups", { group: ["1"] }],
+  ])("ignores %s in a link if it is not text, and shows the board", async (_part, queryParams) => {
+    renderHub(
+      createFakePlatform(
+        lifecycleWorld([bodil, process(11, "En process", "Idéfas", 1)], {
+          queryParams: queryParams as never,
+          savedSettings: { "project-1": savedSettings({ filterFields: [{ type: "startsWith", name: "GKL", referenceName: GKL.referenceName }] }) },
+        }),
+      ),
+    );
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(cardsIn("Idéfas")).toHaveLength(1);
+    expect(screen.queryByText(/could not read the link/)).toBeNull();
   });
 });
 
@@ -185,7 +230,7 @@ describe("once settings are saved", () => {
     );
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Custom.Borta");
+    expect(alert.textContent).toContain("a phase field that Feature does not have");
     expect(screen.queryByRole("region", { name: "Board" })).toBeNull();
   });
 });
@@ -618,6 +663,29 @@ describe("dimming through the group list", () => {
   });
 });
 
+describe("reading many objects", () => {
+  it("asks a few batches at a time, and gets them all", async () => {
+    const processes = Array.from({ length: 2_000 }, (_, index) => process(100 + index, `Process ${index}`, "Idéfas", 1));
+    const platform = createFakePlatform(lifecycleWorld([bodil, ...processes]));
+    const read = platform.getWorkItemsBatch;
+    let reading = 0;
+    let most = 0;
+    platform.getWorkItemsBatch = async (...args) => {
+      most = Math.max(most, ++reading);
+      await new Promise((resolve) => setTimeout(resolve));
+      const answer = await read(...args);
+      reading -= 1;
+      return answer;
+    };
+    renderHub(platform);
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(cardsIn("Idéfas")).toHaveLength(2_000);
+    expect(most).toBeGreaterThan(1);
+    expect(most).toBeLessThanOrEqual(6);
+  });
+});
+
 describe("hidden groups", () => {
   const ovrigt = robot(3, "Övrigt");
   const saved = (hiddenGroups: number[]) => ({ projectId: "p", savedSettings: { p: savedSettings({ hiddenGroups }) } });
@@ -936,8 +1004,7 @@ describe("settings that name a field the object's type does not have", () => {
 
     await screen.findByRole("region", { name: "Board" });
     const warning = screen.getByText(/no longer has/);
-    expect(warning.textContent).toContain("Custom.Borta");
-    expect(warning.textContent).toContain("Custom.OcksaBorta");
+    expect(warning.textContent).toContain("2 fields");
     expect(warning.textContent).toContain("A Project Administrator");
     await expectNoAccessibilityViolations();
   });
@@ -946,7 +1013,7 @@ describe("settings that name a field the object's type does not have", () => {
     renderHub(createFakePlatform(world({ marker: VANTAR_PA.referenceName })));
 
     await screen.findByRole("region", { name: "Board" });
-    expect(screen.getByText(/no longer has/).textContent).toContain(VANTAR_PA.referenceName);
+    expect(screen.getByText(/no longer has/).textContent).toContain("1 field");
   });
 });
 
@@ -963,5 +1030,43 @@ describe("damaged settings for the card", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("saved settings");
     expect(screen.queryByRole("region", { name: "Board" })).toBeNull();
+  });
+});
+
+describe("hidden groups", () => {
+  it("says so when they leave nothing on the board, so that an empty board is not taken for the truth", async () => {
+    renderHub(
+      createFakePlatform(
+        lifecycleWorld([bodil, cassius, process(11, "En process", "Idéfas", 1), process(12, "En annan", "Pausad", 2)], {
+          savedSettings: { "project-1": savedSettings({ hiddenGroups: [1, 2] }) },
+        }),
+      ),
+    );
+
+    expect((await screen.findByText(/All 2 objects are in groups hidden in Waypoint's settings/)).textContent).toContain("A Project Administrator can change this");
+    await expectNoAccessibilityViolations();
+  });
+
+  it("says nothing while any object is left", async () => {
+    renderHub(
+      createFakePlatform(
+        lifecycleWorld([bodil, cassius, process(11, "En process", "Idéfas", 1), process(12, "En annan", "Pausad", 2)], {
+          savedSettings: { "project-1": savedSettings({ hiddenGroups: [1] }) },
+        }),
+      ),
+    );
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(screen.queryByText(/hidden in Waypoint's settings/)).toBeNull();
+  });
+});
+
+describe("a phase without cards", () => {
+  it("has its heading and no empty list, which a screen reader would announce as a list of nothing", async () => {
+    renderHub(createFakePlatform(lifecycleWorld([bodil, process(11, "En process", "Idéfas", 1)])));
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(screen.getByRole("heading", { name: /^Pausad/ })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: /^Pausad/ })).toBeNull();
   });
 });

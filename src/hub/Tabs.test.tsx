@@ -352,6 +352,8 @@ describe("saved tabs that are not valid", () => {
     ["a blank divider", [{ name: "Drift", phases: [{ ...phase, dividerBefore: " " }] }]],
     ["a phase listed twice on a tab", [{ name: "Drift", phases: [phase, phase] }]],
     ["a phase on two tabs", [{ name: "Drift", phases: [phase] }, { name: "Avslut", phases: [phase] }]],
+    ["a tab with no phases, which the settings panel never saves", [{ name: "Drift", phases: [phase, ...rest] }, { name: "Tom", phases: [] }]],
+    ["more tabs than a picklist has values", Array.from({ length: 2_049 }, (_, index) => ({ name: `Flik ${index}`, phases: [] }))],
   ])("say so visibly and draw no board when storage holds %s", async (_kind, tabs) => {
     renderHub(createFakePlatform(lifecycleWorld([bodil], { projectId: PROJECT, savedSettings: withTabs(tabs) })));
 

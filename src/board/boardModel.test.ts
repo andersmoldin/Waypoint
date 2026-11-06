@@ -417,6 +417,43 @@ describe("what a card shows from a field", () => {
     expect(card.details).toEqual([{ name: "Läge", value: expected }]);
   });
 
+  it.each([
+    ["markup that decodes to something like a tag, which stays text", "&lt;img src=x onerror=alert(1)&gt;Kvar", "<img src=x onerror=alert(1)>Kvar"],
+    ["an entity written twice, which is decoded once", "&amp;lt;b&amp;gt;", "&lt;b&gt;"],
+    ["a less-than sign that begins no tag", "1 < 2 <3", "1 < 2 <3"],
+    ["a tag with a > in a quoted attribute", `<a title="x>y" href='z>w'>Kvar</a>`, "Kvar"],
+    ["a tag that never ends", "Kvar<div title=", "Kvar"],
+    ["a quote that never ends", `Kvar<div title="x>y`, "Kvar"],
+    ["comments", "<!-- ej --><!--><!--->Kvar<!-- ej --!>Med<!-- ej", "KvarMed"],
+    ["declarations and processing instructions", "<!doctype html><?xml version='1'>Kvar", "Kvar"],
+    ["end tags that close nothing", "Ett</b></><//x>Två", "EttTvå"],
+    ["script and style in any case, and in svg", "<SCRIPT>x</ScRiPt><svg><script>y</script><style>z</style></svg>Kvar", "Kvar"],
+    ["what a browser never shows", "<title>a</title><template>b</template><noscript>c</noscript><iframe>d</iframe><noembed>e</noembed><noframes>f</noframes>Kvar", "Kvar"],
+    ["an element of that kind that never ends", "Kvar<script>x", "Kvar"],
+    ["a form whose fields have the names of the page's own properties", "<form><input name=childNodes><input name=body id=attributes>Kvar</form>", "Kvar"],
+    ["block elements with attributes, in capitals", '<DIV CLASS="a">Ett</DIV><P>Två<BR/>Tre', "Ett\nTvå\nTre"],
+    ["nesting far deeper than any field is written", `${"<div>".repeat(200_000)}Kvar`, "Kvar"],
+    ["many formatting elements that differ in an attribute", `<p>${Array.from({ length: 500 }, (_, index) => `<b a${index}>`).join("")}${"<p>x".repeat(3)}`, "x\nx\nx"],
+  ])("reads rich text as nothing but its text: %s", (_kind, html, expected) => {
+    expect(cardWith("html", html).currentSituation).toBe(expected);
+  });
+
+  it.each<[string, FieldKind, unknown]>([
+    ["rich text", "html", { toString: null }],
+    ["a date", "date", { toString: null }],
+    ["text", "text", { toString: null }],
+  ])("shows %s of a shape nobody expected as what it holds, without failing", (_kind, kind, value) => {
+    expect(cardWith(kind, value).details).toEqual([{ name: "Läge", value: '{"toString":null}' }]);
+  });
+
+  it("says that a field could not be read, and the rest of the card stays", () => {
+    // The only way a value cannot even be written out: nothing can follow it down.
+    const unreadable: unknown[] = [];
+    unreadable.push(unreadable);
+
+    expect(cardWith("text", unreadable).details).toEqual([{ name: "Läge", value: "Could not be read here. Open the work item to see it." }]);
+  });
+
   it.each<[string, FieldKind, unknown, string]>([
     ["text exactly as it stands", "text", "  <b>Ett</b>  två ", "  <b>Ett</b>  två "],
     ["only spaces as empty", "text", "   ", ""],

@@ -36,6 +36,8 @@ export async function expectNoAccessibilityViolations(root: Element = document.b
     // jsdom does no layout or painting, so contrast cannot be measured here.
     rules: {
       "color-contrast": { enabled: false },
+      // Off by default in axe as experimental, but it is WCAG's 2.5.3: a name has to hold the words that are shown.
+      "label-content-name-mismatch": { enabled: true },
       // The rig shows the hub and its panel on one page, where the real ones have a page each.
       "landmark-no-duplicate-main": { enabled: root === document.body },
     },

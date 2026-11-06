@@ -43,7 +43,7 @@ describe("the gear", () => {
 
     const opened = await openSettings();
 
-    expect(opened).toBeTruthy();
+    expect(within(opened).getByRole("heading", { level: 1, name: "Waypoint settings" })).toBeTruthy();
   });
 
   it("is not there for anyone else", async () => {
@@ -773,12 +773,12 @@ describe("settings that cannot be used", () => {
     const version = { toString: 1 };
     const platform = createFakePlatform(adminWorld({ savedSettings: { [PROJECT]: { ...savedSettings(), version } } }));
     renderHub(platform);
-    expect((await screen.findByRole("alert")).textContent).toContain(`unknown version: ${JSON.stringify(version)}`);
+    expect((await screen.findByRole("alert")).textContent).toContain("unknown version");
 
     fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
     const settings = await panel();
 
-    expect((await within(settings).findByRole("alert")).textContent).toContain(`unknown version: ${JSON.stringify(version)}`);
+    expect((await within(settings).findByRole("alert")).textContent).toContain("unknown version");
     fireEvent.click(within(settings).getByRole("button", { name: "Reset to defaults" }));
 
     await screen.findByText(/isn't set up/);
@@ -845,7 +845,7 @@ describe("settings that cannot be used", () => {
       adminWorld({ savedSettings: { [PROJECT]: savedSettings({ phaseField: "Custom.Borta" }) }, workItemTypes: ["Feature", "Epic"] }),
     );
     renderHub(platform);
-    expect((await screen.findByRole("alert")).textContent).toContain("Custom.Borta");
+    expect((await screen.findByRole("alert")).textContent).toContain("a phase field that");
     fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
     const settings = await panel();
 
@@ -861,14 +861,14 @@ describe("settings that name something the project no longer has", () => {
   it("say so visibly on the hub when the group type is gone, instead of showing every object without a group", async () => {
     renderHub(createFakePlatform(adminWorld({ savedSettings: { [PROJECT]: savedSettings({ groupType: "Borta" }) } })));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("Borta");
+    expect((await screen.findByRole("alert")).textContent).toContain("a work item type that the project does not have");
     expect(screen.queryByRole("region", { name: "Board" })).toBeNull();
   });
 
   it("say so visibly on the hub when the object type is gone", async () => {
     renderHub(createFakePlatform(adminWorld({ savedSettings: { [PROJECT]: savedSettings({ objectType: "Borta" }) } })));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("Borta");
+    expect((await screen.findByRole("alert")).textContent).toContain("a work item type that the project does not have");
   });
 
   it("explain themselves in the panel and offer the way back to the defaults", async () => {
@@ -877,7 +877,7 @@ describe("settings that name something the project no longer has", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
     const settings = await panel();
 
-    expect((await within(settings).findByRole("alert")).textContent).toContain("Borta");
+    expect((await within(settings).findByRole("alert")).textContent).toContain("a work item type that the project does not have");
     fireEvent.click(within(settings).getByRole("button", { name: "Reset to defaults" }));
 
     await screen.findByText(/isn't set up/);
@@ -894,11 +894,11 @@ describe("settings that name something the project no longer has", () => {
     };
     renderHub(platform);
 
-    expect((await screen.findByRole("alert")).textContent).toContain(`${refused} as a work item type`);
+    expect((await screen.findByRole("alert")).textContent).toContain("a work item type that the project does not have");
     fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
     const settings = await panel();
 
-    expect((await within(settings).findByRole("alert")).textContent).toContain(`${refused} as a work item type`);
+    expect((await within(settings).findByRole("alert")).textContent).toContain("a work item type that the project does not have");
     expect(chosen(settings, "Object work item type")).toBe("Choose…");
     fireEvent.click(within(settings).getByRole("button", { name: "Reset to defaults" }));
 
@@ -1364,9 +1364,7 @@ describe("settings that name a field the object's type no longer has, in the pan
     const settings = await openSettings();
 
     await formLoaded(settings);
-    const alert = within(settings).getByRole("alert");
-    expect(alert.textContent).toContain("Custom.Borta");
-    expect(alert.textContent).toContain("Custom.OcksaBorta");
+    expect(within(settings).getByRole("alert").textContent).toContain("2 fields");
     expect(chosen(settings, "Waiting on")).toBe("None");
     expect(detailFieldNames(settings)).toEqual(["GKL"]);
     await expectNoAccessibilityViolations(settings);
@@ -1416,3 +1414,62 @@ async function choose(settings: HTMLElement, label: string, option: string): Pro
   fireEvent.click(dropdown(settings, label));
   fireEvent.click(await screen.findByRole("option", { name: option }));
 }
+
+describe("settings too large for anyone to have saved them here", () => {
+  const manyPhases = Array.from({ length: 2_049 }, (_, index) => `Fas ${index}`);
+  const log = Array.from({ length: 501 }, (_, index) => ({ at: index, userId: "u", userName: "Ada" }));
+
+  it.each<[string, Record<string, unknown>]>([
+    ["a phase order longer than any picklist", { settings: { objectType: "Feature", groupType: "Epic", phaseField: PHASE_FIELD, phaseOrder: manyPhases } }],
+    ["a name far longer than anything in Azure DevOps", { settings: { objectType: "Feature", groupType: "Epic", phaseField: "x".repeat(1_001), phaseOrder: PHASES } }],
+    ["more hidden groups than the project can have", { settings: { objectType: "Feature", groupType: "Epic", phaseField: PHASE_FIELD, phaseOrder: PHASES, hiddenGroups: Array.from({ length: 20_001 }, (_, index) => index + 1) } }],
+    ["a longer log than is ever kept", { log }],
+    ["a log entry with a very long name", { log: [{ at: 1, userId: "u", userName: "x".repeat(1_001) }] }],
+  ])("lead to the reset, with %s", async (_kind, change) => {
+    const platform = createFakePlatform(adminWorld({ savedSettings: { [PROJECT]: { ...savedSettings(), ...change } } }));
+    renderHub(platform);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("not valid");
+    fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
+    const settings = await panel();
+
+    expect(within(settings).getByRole("button", { name: "Reset to defaults" })).toBeTruthy();
+  });
+
+  it("carry only who and when from a damaged log, and no more of it than is kept", async () => {
+    const entry = { at: 1, userId: "u", userName: "Ada", surprise: "x".repeat(1_000) };
+    const platform = createFakePlatform(adminWorld({ savedSettings: { [PROJECT]: { version: 99, log: Array.from({ length: 1_000 }, () => entry) } } }));
+    renderHub(platform);
+    fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
+    const settings = await panel();
+
+    fireEvent.click(await within(settings).findByRole("button", { name: "Reset to defaults" }));
+    await screen.findByText(/isn't set up/);
+
+    const { log: kept } = (await storedContent(platform)) as { log: Record<string, unknown>[] };
+    expect(kept).toHaveLength(500);
+    expect(kept[0]).toEqual({ at: 1, userId: "u", userName: "Ada" });
+  });
+
+  it("say nothing of what is stored in the document, in Waypoint's own voice", async () => {
+    const words = "Your session has expired. Sign in again at example.test.";
+    renderHub(createFakePlatform(adminWorld({ savedSettings: { [PROJECT]: savedSettings({ objectType: words }) } })));
+
+    expect((await screen.findByRole("alert")).textContent).not.toContain(words);
+  });
+});
+
+describe("saving what the hub could not read back", () => {
+  it("is refused with the reason, and nothing is written", async () => {
+    const platform = createFakePlatform(adminWorld({ workItemTypes: ["Feature", "Epic"], savedSettings: { [PROJECT]: savedSettings() } }));
+    renderHub(platform);
+    const settings = await openSettings();
+    const stored = await storedContent(platform);
+
+    fireEvent.change((await within(settings).findAllByRole("textbox", { name: /^Name of tab/ }))[0], { target: { value: "x".repeat(1_001) } });
+    fireEvent.click(within(settings).getByRole("button", { name: "Save" }));
+
+    expect((await within(settings).findByText(/did not save the settings/)).textContent).toContain("1,000 characters");
+    expect(await storedContent(platform)).toEqual(stored);
+  });
+});
