@@ -173,7 +173,9 @@ Stegen görs före den första taggen. Grinden avbryter om granskaren saknas, s�
 
 Båda skripten använder Chrome via Playwright. PNG-filerna checkas in, så bygget behöver inget bildverktyg.
 
-Ikonerna är två. Marketplace-ikonen (`icons.default`) finns i 128 och 256 px, i en ljus och en mörk variant. Hubbens menyikon (`icon.light` och `icon.dark` i manifestet) är ritad på ett 16 px-rutnät i samma färg som de inbyggda hubbarnas glyfer och finns i 32 px per tema, så att den är skarp på Retina i de 16 px Boards-menyn visar den i.
+Ikonerna är två. Marketplace-ikonen (`icons.default`) finns i 128 och 256 px, i en ljus och en mörk variant. Hubbens menyikon (`icon` i manifestet) är ritad på ett 16 px-rutnät i det ljusa temats glyffärg och finns i 32 px, så att den är skarp på Retina i de 16 px Boards-menyn visar den i.
+
+Menyikonen är en enda mörk bild, angiven som en sträng. Azure DevOps inverterar en sådan ikon med temats CSS i det mörka temat, och det gäller direkt vid temabyte. Med `icon.light` och `icon.dark` väljer menyn variant bara när den ritas, och den ritas inte om vid temabyte, så förra temats variant blir kvar. Det är mätt i menyn i ett publikt Azure DevOps-projekt (M280). Inverteringen är inte dokumenterad av Microsoft. Vad den inte täcker står i [Kända gränser](kanda-granser.md#hubbens-ikon-i-hög-kontrast).
 
 En `overview.md` som genereras från README:n var ett alternativ. Nu är README:n själv listningens text: en källa och inget genereringssteg, så texterna kan inte glida isär. Därför är bilderna i README:n relativa (de följer med i paketet) och länkarna absoluta (Marketplace skriver inte om dem).
 
