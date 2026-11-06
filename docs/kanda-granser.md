@@ -76,3 +76,11 @@ Om ett fält som inställningarna pekar på inte längre finns på objektets typ
 ## Efter att ett work item har ändrats
 
 Hubben hämtar data när den öppnas. Ändrar någon ett work item i dialogen som knappen i detaljpanelen öppnar, syns ändringen på brädan först efter omladdning.
+
+## Hubbens ikon i hög kontrast
+
+Hubbens ikon i menyn är båten, som en enda mörk bild. Azure DevOps inverterar bilden i temat Dark men inte i temat High Contrast (Dark), som är i beta. Där är båten mörk på svart botten och syns knappt.
+
+Namnet Waypoint syns bredvid ikonen när menyn är utfälld. I hopfälld meny visas bara ikonen, så där är raden svår att hitta i det temat.
+
+Gränsen är ett val: båten behålls. Azure DevOps har ingen båt bland sina egna glyfer, och de är det enda ikonsättet som följer alla teman. Med en bild per tema blir High Contrast (Dark) rätt, men då blir förra temats bild kvar efter ett temabyte tills menyn ritas om.

@@ -1,5 +1,5 @@
 // Renders the icons' SVGs to the PNGs that are checked in, so the build needs no image tool: the
-// Marketplace icon in two variants and sizes, and the hub's menu icon in a variant per theme.
+// Marketplace icon in two variants and sizes, and the hub's menu icon.
 // Run with `npm run icons`. Chromium is the renderer the SVGs were designed in.
 import { mkdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -10,10 +10,11 @@ const VARIANTS = ["light", "dark"] as const;
 const MARKETPLACE_GRID = 128;
 const MARKETPLACE_SIZES = [128, 256];
 // The menu shows the hub's icon at 16 px next to glyphs in the theme's primary text color, so the
-// icon is drawn on a 16 px grid in that color and rendered at scale 2 to be crisp on Retina.
+// icon is drawn on a 16 px grid in the light theme's color and rendered at scale 2 to be crisp on
+// Retina. Azure DevOps inverts it in the dark theme.
 const MENU_ICON_GRID = 16;
 const MENU_ICON_SCALE = 2;
-const MENU_ICON_COLORS: Record<(typeof VARIANTS)[number], string> = { light: "rgba(0, 0, 0, 0.9)", dark: "rgba(255, 255, 255, 0.95)" };
+const MENU_ICON_COLOR = "rgba(0, 0, 0, 0.9)";
 
 const OUTPUT = new URL("../images/icons/", import.meta.url);
 mkdirSync(OUTPUT, { recursive: true });
@@ -37,11 +38,13 @@ try {
       await render({ svg, file: `waypoint-${variant}-${size}.png`, grid: MARKETPLACE_GRID, scale: size / MARKETPLACE_GRID });
     }
   }
-  const menuIcon = svgSource("waypoint-hub");
-  for (const variant of VARIANTS) {
-    const file = `waypoint-hub-${variant}-${MENU_ICON_GRID * MENU_ICON_SCALE}.png`;
-    await render({ svg: menuIcon, file, grid: MENU_ICON_GRID, scale: MENU_ICON_SCALE, color: MENU_ICON_COLORS[variant] });
-  }
+  await render({
+    svg: svgSource("waypoint-hub"),
+    file: `waypoint-hub-${MENU_ICON_GRID * MENU_ICON_SCALE}.png`,
+    grid: MENU_ICON_GRID,
+    scale: MENU_ICON_SCALE,
+    color: MENU_ICON_COLOR,
+  });
 } finally {
   await browser.close();
 }

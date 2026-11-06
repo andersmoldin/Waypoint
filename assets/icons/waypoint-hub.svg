@@ -1,5 +1,5 @@
 <!-- The hub's menu icon: the sailboat on a wave as a line icon on a 16 px grid, 1 px strokes on
-     half-pixel coordinates so they stay crisp. currentColor, so the renderer sets the theme's color. -->
+     half-pixel coordinates so they stay crisp. currentColor, so the renderer sets the color. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">
   <path d="M8.5 1.5v9"/>
   <path d="M8.5 1.5c3 2.5 4.5 5 5 9"/>

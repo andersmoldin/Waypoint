@@ -46,7 +46,7 @@ describe("the listing", () => {
   it("packages only files that exist in the repository", () => {
     const paths = [
       sharedManifest.icons.default,
-      ...sharedManifest.contributions.flatMap(({ properties }) => Object.values(properties.icon ?? {})),
+      ...sharedManifest.contributions.flatMap(({ properties }) => properties.icon ?? []),
       publicManifest.content.details.path,
       publicManifest.content.license.path,
       ...publicManifest.screenshots.map(({ path }) => path),
@@ -114,26 +114,23 @@ describe("the icons", () => {
 
 describe("the hub's menu icon", () => {
   const hub = sharedManifest.contributions.find(({ id }) => id === "waypoint-hub");
-  const icon = hub?.properties.icon;
+  const icon = hub?.properties.icon ?? "";
 
   // The menu shows it as a 16 px image, so 32 px is crisp on Retina. Transparent, so the menu's
   // background and the selected row's tint show through, as they do behind the neighbors' glyphs.
-  it("is a 32 px PNG with an alpha channel in a light and a dark variant", () => {
-    expect(icon).toEqual({ light: "images/icons/waypoint-hub-light-32.png", dark: "images/icons/waypoint-hub-dark-32.png" });
-    for (const path of Object.values(icon ?? {})) {
-      expect(pngHeader(path), path).toEqual({ width: 32, height: 32, hasAlpha: true });
-    }
+  it("is one 32 px PNG with an alpha channel", () => {
+    expect(pngHeader(icon)).toEqual({ width: 32, height: 32, hasAlpha: true });
   });
 
-  it("differs between the variants, because the theme's color is baked into the file", () => {
-    const files = Object.values(icon ?? {}).map((path) => readFileSync(inRepo(path)));
-    expect(files).toHaveLength(2);
-    expect(files[0].equals(files[1])).toBe(false);
+  // Azure DevOps inverts an icon given as a string through the theme's CSS, so it follows a theme
+  // change at once. The menu picks from { light, dark } only when it renders and does not render
+  // on a theme change, so the previous theme's variant stays. See docs/publicering.md.
+  it("is a string, not a variant per theme", () => {
+    expect(icon).toBe("images/icons/waypoint-hub-32.png");
   });
 
   it("is not the Marketplace icon, which stays as it is", () => {
-    expect(icon).toBeDefined();
     expect(sharedManifest.icons.default).toBe("images/icons/waypoint-light-128.png");
-    expect(Object.values(icon ?? {})).not.toContain(sharedManifest.icons.default);
+    expect(icon).not.toBe(sharedManifest.icons.default);
   });
 });
