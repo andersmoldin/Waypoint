@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import packageJson from "../package.json";
+import devManifest from "../vss-extension.dev.json";
 import manifest from "../vss-extension.json";
+import publicManifest from "../vss-extension.public.json";
 import hubHtml from "./hub/hub.html?raw";
 
 describe("the extension an organization installs", () => {
@@ -9,7 +11,17 @@ describe("the extension an organization installs", () => {
   });
 
   it("comes from the publisher andersmoldin", () => {
-    expect(manifest.publisher).toBe("andersmoldin");
+    expect(publicManifest.publisher).toBe("andersmoldin");
+  });
+
+  // A publishing credential is asked for by publisher, and the dev extension is published unattended on every merge.
+  it("has a publisher of its own, apart from the private dev extension's", () => {
+    expect(devManifest.publisher).toBe("andersmoldin-dev");
+    expect(devManifest.publisher).not.toBe(publicManifest.publisher);
+  });
+
+  it("installs in Azure DevOps Services, which is all it is built for", () => {
+    expect(manifest.targets).toEqual([{ id: "Microsoft.VisualStudio.Services.Cloud" }]);
   });
 
   it("adds exactly one hub, called Waypoint, to the Boards group", () => {
@@ -56,7 +68,7 @@ describe("the pages of the hub and its settings panel", () => {
     expect(contentSecurityPolicy()["connect-src"]).toContain("https://dev.azure.com");
   });
 
-  it("can reach no other host than Azure DevOps", () => {
+  it("lists no other host than Azure DevOps to fetch from", () => {
     const keywordsAndInlineData = ["'none'", "'self'", "'unsafe-inline'", "data:"];
     const azureDevOpsHost = /^https:\/\/(\*\.)?dev\.azure\.com$|^https:\/\/\*\.visualstudio\.com$/;
 

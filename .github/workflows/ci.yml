@@ -9,13 +9,13 @@ permissions:
 
 jobs:
   check:
-    # The job names are the required status checks on main: lint, test and build.
+    # The job names are the required status checks on main: lint, test, build and browser. See docs/publicering.md.
     name: ${{ matrix.task }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        task: [lint, test, build]
+        task: [lint, test, build, browser]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -2,11 +2,12 @@
 # Publishes a vsix with a Marketplace Trusted Publishing credential, without any stored
 # secret, and waits for Marketplace's verdict. Runs in a job that may request an identity
 # token, and needs the workflow's Trusted Publishing policy. See docs/publicering.md.
-# Usage: publishToMarketplace.sh <vsix> <version>
+# Usage: publishToMarketplace.sh <vsix> <publisher> <version>
 set -euo pipefail
 
 vsix="$1"
-version="$2"
+publisher="$2"
+version="$3"
 
 # Marketplace credentials live for 15 minutes, so a new one is fetched for each
 # phase and whenever the polling has used the current one for 10 minutes.
@@ -21,7 +22,7 @@ fetch_credential() {
     --header "Authorization: FederatedToken ${github_token}" \
     --header "Accept: application/json" \
     --header "Content-Type: application/json" \
-    --data '{"publisherName":"andersmoldin"}' \
+    --data "{\"publisherName\":\"${publisher}\"}" \
     "https://marketplace.visualstudio.com/_apis/gallery/token?api-version=7.2-preview.1")"; then
     echo "::error::Marketplace refused the token exchange: ${exchange}"
     exit 1
@@ -32,7 +33,8 @@ fetch_credential() {
 }
 
 tfx() {
-  npx tfx extension "$1" --vsix "${vsix}" --auth-type pat --token "${credential}" --no-prompt "${@:2}"
+  # --no: never the unrelated package called tfx from the registry, should the installed one be missing.
+  npx --no tfx extension "$1" --vsix "${vsix}" --auth-type pat --token "${credential}" --no-prompt "${@:2}"
 }
 
 fetch_credential

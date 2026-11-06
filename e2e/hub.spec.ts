@@ -1,9 +1,10 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { chromium, expect, test as base, type Frame, type Page } from "@playwright/test";
+import { axeViolations } from "../browser/axe.ts";
 
 const ORGANIZATION = "https://dev.azure.com/andersmoldin";
-const HUB = `${ORGANIZATION}/Waypoint-test/_apps/hub/andersmoldin.waypoint-dev.waypoint-hub`;
+const HUB = `${ORGANIZATION}/Waypoint-test/_apps/hub/andersmoldin-dev.waypoint-dev.waypoint-hub`;
 /** Outside the repository, and used for nothing but this test. */
 const BROWSER_PROFILE = join(homedir(), ".cache", "waypoint-e2e-profile");
 /** A Stakeholder or Reader has no gear, so the settings are opened from a profile logged in as a Project Administrator. */
@@ -85,6 +86,13 @@ test("the logged-in user sees the board with the test organization's data", asyn
   await expect(board).toBeVisible({ timeout: 60_000 });
   const firstPhase = board.getByRole("list", { name: /^Idéfas / });
   await expect(firstPhase.getByRole("listitem").filter({ hasText: KNOWN_OBJECT })).toBeVisible();
+});
+
+test("axe-core finds nothing on the real page, in the real colors of the account's theme", async ({ page }) => {
+  const hub = await openHub(page);
+  await expect(hub.getByRole("region", { name: "Board" })).toBeVisible({ timeout: 60_000 });
+
+  expect(await axeViolations(hub)).toEqual([]);
 });
 
 test("the logged-in user can read the project's tags, which a filter field of tags needs", async ({ page }) => {

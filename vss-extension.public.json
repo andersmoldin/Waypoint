@@ -1,4 +1,5 @@
 {
+  "publisher": "andersmoldin",
   "id": "waypoint",
   "name": "Waypoint",
   "description": "A read-only lifecycle board for Azure Boards. See which phase every work item is in, which group it belongs to and whether it is waiting for something.",

@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
+      sha256: ${{ steps.version.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,16 +28,15 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Build the vsix as YYYY.M.<run number + 100>
+      - name: Build the vsix as YYYY.M.<run number>
         id: version
         run: |
-          # This repository's run numbers start at 1, but Marketplace needs a version above the
-          # already published waypoint-dev 2026.11.15, so the offset keeps the versions rising.
-          version="$(date -u +%Y.%-m).$((GITHUB_RUN_NUMBER + 100))"
+          version="$(date -u +%Y.%-m).${GITHUB_RUN_NUMBER}"
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           npm run build:web
           npm run package:dev -- --override "{\"version\":\"${version}\"}"
-          scripts/verifyVsix.sh out/waypoint-dev.vsix waypoint-dev "${version}" private
+          scripts/verifyVsix.sh out/waypoint-dev.vsix andersmoldin-dev waypoint-dev "${version}" private
+          echo "sha256=$(sha256sum out/waypoint-dev.vsix | cut --delimiter=' ' --fields=1)" >> "${GITHUB_OUTPUT}"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: waypoint-dev-vsix
@@ -57,6 +57,7 @@ jobs:
       id-token: write
     env:
       VERSION: ${{ needs.package.outputs.version }}
+      SHA256: ${{ needs.package.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -70,5 +71,10 @@ jobs:
         with:
           name: waypoint-dev-vsix
           path: out
+      # Checked again from this job's own checkout before any credential exists, since the job above runs the build.
+      - name: Check the vsix
+        run: |
+          echo "${SHA256}  out/waypoint-dev.vsix" | sha256sum --check --strict
+          scripts/verifyVsix.sh out/waypoint-dev.vsix andersmoldin-dev waypoint-dev "${VERSION}" private
       # The Marketplace side of publishing, including why it never shares: docs/publicering.md.
-      - run: scripts/publishToMarketplace.sh out/waypoint-dev.vsix "${VERSION}"
+      - run: scripts/publishToMarketplace.sh out/waypoint-dev.vsix andersmoldin-dev "${VERSION}"
