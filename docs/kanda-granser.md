@@ -26,6 +26,8 @@ En grupp som bara nås via föräldralänken från ett objekt, till exempel en f
 
 En bortvald grupp sparas med sitt work item-id även när gruppen försvinner eller grupptypen byts. Id:t matchar då ingenting, och gruppen är fortfarande bortvald om den kommer tillbaka. Ett id som inte går att läsa eller är av fel typ visas inte i inställningarna, men sparas kvar.
 
+Döljer bortvalen alla objekt säger brädan det i en rad, så att en tom bräda inte tas för sanningen. Lämnar de något objekt kvar säger den inget. Det går inte att skilja från att en administratör har gjort ett medvetet val.
+
 Bortval är ett val av vy, inte ett skydd. Den som kan läsa ett objekt men inte dess bortvalda grupp ser objektet under No group, eftersom hubben då inte kan se att föräldern är en grupp. Ett sådant objekt göms inte, så att inget försvinner utan väg tillbaka.
 
 ## Flikar i länkar
@@ -69,9 +71,49 @@ En Project Administrator ställer in filterfälten. Filtren tillämpas före kap
 
 Hubben visar fält av typen HTML som ren text, på kortet och i detaljpanelen. I detaljpanelen blir stycken och listpunkter egna rader, medan kortet visar texten sammanhängande. En länk blir bara sin text, och formatering och bilder visas inte. Ett fält som bara innehåller en bild räknas som tomt. Den som vill se fältet som det är öppnar work item:et.
 
+Fältet läses av en enkel läsare som går igenom texten en gång och bara tar ut text. Inget träd byggs, eftersom en webbläsare kan behöva minuter eller krascha på vissa HTML-värden på några kilobyte, och det skulle drabba alla som öppnar hubben. Läsaren följer HTML:s regler där de spelar roll för vanlig text, men kan läsa trasig markup annorlunda än en webbläsare. Ett sådant fel ger fel ord, aldrig HTML i sidan.
+
+Kan ett fälts värde inte skrivas ut alls visar fältet "Could not be read here. Open the work item to see it.", och resten av kortet och brädan står kvar.
+
+## Text som kan vilseleda
+
+Text från work items visas som den står, och det är ett medvetet val:
+
+- Text som är dold med CSS i ett HTML-fält syns på brädan, eftersom bara texten läses och inte formateringen.
+- Styrtecken för textriktning och osynliga tecken tas inte bort, så en text kan se ut att säga något annat än den gör, eller se tom ut. En rensning skulle också ändra text på högerställda språk, och den som kan ändra fältet kan ändå skriva vad som helst.
+- Fritext ingår i kortets tillgängliga namn, så en titel kan låtsas ange en annan fas. Namnet går inte att göra helt säkert så länge titeln ingår i det.
+
+## Långa värden
+
+"Aktuellt läge" och "Väntar på" visas på högst två rader på kortet, och hela texten står i detaljpanelen. Titeln visas som den står, med sina radbrytningar, så en titel med många radbrytningar gör kortet högt.
+
+En tavla där tusentals objekt har fält på hundratals kilobyte blir långsam att öppna, men felet stannar hos dem som öppnar just den tavlan.
+
+## Gränser i inställningarna
+
+Inställningsdokumentet kan skrivas av alla som kan öppna hubben, och varje besökares webbläsare läser det. Därför avvisas ett dokument som har mer än detta. Gränserna ligger långt över vad ett ärligt dokument innehåller, och över Azure DevOps egna gränser där sådana finns:
+
+| Vad | Högst |
+| --- | --- |
+| Tecken i ett namn eller en text | 1 000 |
+| Faser, och flikar | 2 048 |
+| Fält i detaljpanelen | 1 024 |
+| Bortvalda grupper | 20 000 |
+| Filterfält | 100 |
+| Urbockade taggar per filterfält | 20 000 |
+| Poster i loggen | 500 |
+
+Panelen sparar inget som hubben inte kan läsa tillbaka, och säger då varför. Fliknamn och avdelare kan skrivas hur långa som helst i panelen, men det syns först när man sparar.
+
+Felmeddelanden upprepar inte det som står i dokumentet. Annars skulle den som skriver dokumentet kunna lägga sina ord i Waypoints mun, i ett fel som ser ut som Waypoints eget. Meddelandena säger därför att en typ saknas, eller hur många fält som är borta, utan att nämna dem. I panelen syns det vid varje val.
+
 ## Fält som inte går att använda
 
 Om ett fält som inställningarna pekar på inte längre finns på objektets typ, eller är av en sort rollen inte kan använda, visar hubben brädan utan fältet och en varning, tills en Project Administrator har sparat om inställningarna.
+
+## Installationsmål
+
+Extensionen installeras bara i Azure DevOps Services (`Microsoft.VisualStudio.Services.Cloud`). Hubbens Content Security Policy skulle ändå blockera en lokal Azure DevOps Server.
 
 ## Efter att ett work item har ändrats
 

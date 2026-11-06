@@ -30,8 +30,10 @@ Waypoint is for Azure DevOps Services (`dev.azure.com`). It shows up to 2,000 wo
 - **One scope.** Waypoint asks only for `vso.work` and never writes to work items.
 - **Your data stays in Azure DevOps.** No telemetry and no calls to any other host. See the [privacy policy](https://github.com/andersmoldin/Waypoint/blob/main/PRIVACY.md).
 - **Free text stays text.** Text from work items never reaches the page as HTML: rich text fields are shown as plain text.
-- **Known limitations are written down.** Settings are not protected in storage and the settings log is unverified, because Azure DevOps offers extensions no way to do better. Read [SECURITY.md](https://github.com/andersmoldin/Waypoint/blob/main/SECURITY.md) before you install.
-- **Audited.** See the [security audit](https://github.com/andersmoldin/Waypoint/blob/main/SECURITY_AUDIT.md) and the [accessibility report](https://github.com/andersmoldin/Waypoint/blob/main/ACCESSIBILITY.md).
+- **Known limitations are written down.** Everyone who can open the hub can technically read and change its settings for any project, and the settings log is unverified. Waypoint stays with one read scope rather than a broader one that could do better. Read [SECURITY.md](https://github.com/andersmoldin/Waypoint/blob/main/SECURITY.md) before you install.
+- **Security reviewed.** Four independent AI reviewers went through Waypoint against OWASP ASVS 5.0 Level 1 and what is specific to Azure DevOps, and tried to break it with hostile HTML. No external human auditor has. They found no way to run code in the page. What they did find is fixed or accepted by the owner, and listed in the [security audit](https://github.com/andersmoldin/Waypoint/blob/main/SECURITY_AUDIT.md).
+- **Built for WCAG 2.2 AA.** axe-core finds no violations on the board, the filter, the detail panel or the settings, with and without forced colors, and the whole hub works from the keyboard. Screen reader testing is still to come. See the [accessibility report](https://github.com/andersmoldin/Waypoint/blob/main/ACCESSIBILITY.md).
+- **One person's project.** Waypoint is run by a private person, on a best-effort basis and without guarantees.
 
 ## Support
 
