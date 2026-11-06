@@ -12,18 +12,29 @@ Varje merge till `main` kör `.github/workflows/publish-dev.yml`. Det bygger en 
 
 Den första publika versionen är taggen `v2026.11.0`.
 
-Kontraktet för utbytet är inte dokumenterat för `tfx`. Det är härlett ur `vsce` (`src/oidc.ts`). `tfx` godtar credentialen: "Publish waypoint-dev" har varit grön sedan den första körningen.
-
 ### Hur publiceringen går till
+
+Publiceringsjobbet kör varken Node eller npm-paket, bara `curl` och `jq`. Det är där credentialen finns, och ett komprometterat paket skulle där kunna hämta fler credentials eller byta ut filen, också efter ett godkännande. `tfx` används bara för att bygga paketet, i jobbet före.
 
 `scripts/publishToMarketplace.sh` gör två saker i ordning, med ett nytt credential för varje fas (de lever i 15 minuter):
 
-1. Laddar upp vsix-filen med `tfx extension publish --no-wait-validation`. `tfx` egen väntan ger upp efter cirka fyra minuter, så den används inte.
-2. Frågar Marketplace om valideringen med `tfx extension isvalid` var 20:e sekund, i högst 25 minuter. Credentialen byts ut var tionde minut under väntan.
+1. Laddar upp vsix-filen med `PUT` om extensionen finns och `POST` om Marketplace svarar 404. Svarar Marketplace något annat laddas inget upp.
+2. Frågar Marketplace om valideringen var 20:e sekund, i högst 25 minuter. Credentialen byts ut var tionde minut under väntan.
 
-Flödet delar inte. Ett Trusted Publishing-credential får bara ladda upp, uppdatera och läsa valideringsstatus; `tfx extension share` ger 403 ("Trusted Publishing credentials only support extension upload and update"). Delning gäller hela extensionen och alla dess versioner, så den görs en gång av ägaren (se nedan). Att credentialen får läsa delningen med `show` är inte bevisat, så flödet kontrollerar den inte.
+Microsoft dokumenterar inget REST-API för Marketplace, så det här är härlett:
+
+| Vad | Varifrån |
+| --- | --- |
+| Utbytet av GitHubs OIDC-token mot ett credential | `vsce` (`src/oidc.ts`) |
+| Uppladdning och validering | `tfx` (`_lib/publish.js`) och `azure-devops-node-api`. Anropen är inspelade mot en stub och stämmer med `tfx` utom i `User-Agent` och `Connection` |
+
+Ändrar Microsoft kontraktet blir körningen röd, aldrig en felaktig publicering: ett svar skriptet inte förstår räknas som att valideringen väntar, tills tiden går ut. Portalen på <https://marketplace.visualstudio.com/manage> är reserven: ladda ner vsix-filen från körningen och ladda upp den där.
+
+Flödet delar inte. Ett Trusted Publishing-credential får bara ladda upp, uppdatera och läsa valideringsstatus; `tfx extension share` ger 403 ("Trusted Publishing credentials only support extension upload and update"). Delning gäller hela extensionen och alla dess versioner, så den görs en gång av ägaren (se nedan). Att credentialen får läsa delningen är inte bevisat, så flödet kontrollerar den inte.
 
 Körningen blir grön när versionen är uppladdad och godkänd. Den blir röd om Marketplace avvisar versionen (felmeddelandet skrivs ut) eller om valideringen inte är klar efter 25 minuter.
+
+**Första körningen efter bytet till `curl` och den nya publishern** är den första riktiga provningen av kontraktet, och den skapar extensionen. Blir den röd före uppladdningen är inget publicerat. Säger den `Could not read` med något annat än 404 har Marketplace svarat oväntat på en extension som inte finns. Ladda då upp den första versionen i portalen, så går nästa merge över till att uppdatera.
 
 ### Om en körning blir röd
 
@@ -32,7 +43,7 @@ Körningar som fallerar före uppladdningen, till exempel vid utbytet av token, 
 Körningar som fallerar efter uppladdningen kan ha lämnat versionen på Marketplace. En omkörning med samma version avvisas, så gör så här:
 
 1. Läs versionen i körningens logg (`ÅÅÅÅ.M.<körningsnummer>`).
-2. Kontrollera valideringen: `tfx extension isvalid --publisher andersmoldin-dev --extension-id waypoint-dev --version <version> --auth-type pat --token <PAT>`.
+2. Kontrollera valideringen på <https://marketplace.visualstudio.com/manage>.
 3. Om valideringen fortfarande väntar: vänta och gör om steg 2.
 4. Om Marketplace avvisade versionen: rätta orsaken och merga. Nästa merge ger en ny version.
 
@@ -206,7 +217,7 @@ Azure DevOps uppdaterar alla installationer automatiskt, och att avpublicera en 
 
 ## Reserv: Entra workload identity federation
 
-Reserven används bara om `tfx` eller Marketplace avvisar credentialen från Trusted Publishing. Då ersätts de två `curl`-anropen i funktionen `fetch_credential` i `scripts/publishToMarketplace.sh`, och resten av flödet är oförändrat. PAT används aldrig. Använd en app registration per publisher, inte en för båda: en gemensam skulle ge dev-flödet samma identitet som den publika extensionen, och dess token gäller hela Azure DevOps, inte bara Marketplace.
+Reserven används bara om Marketplace avvisar credentialen från Trusted Publishing. Då ersätts de två `curl`-anropen i funktionen `fetch_credential` i `scripts/publishToMarketplace.sh`, och resten av flödet är oförändrat. PAT används aldrig. Använd en app registration per publisher, inte en för båda: en gemensam skulle ge dev-flödet samma identitet som den publika extensionen, och dess token gäller hela Azure DevOps, inte bara Marketplace.
 
 1. Skapa en app registration i Entra per publisher, var och en med ett federated credential för issuern `https://token.actions.githubusercontent.com`, subject `repo:andersmoldin/Waypoint:environment:waypoint-dev` respektive `repo:andersmoldin/Waypoint:environment:marketplace`, och audience `api://AzureADTokenExchange`.
 
@@ -215,20 +226,18 @@ Reserven används bara om `tfx` eller Marketplace avvisar credentialen från Tru
 3. Byt innehållet i `fetch_credential` mot det här, med variablerna satta under stegets `env:` i båda workflowen. GitHub-tokenets audience ändras också:
 
    ```sh
-   github_token="$(curl --silent --show-error --fail-with-body \
-     --header "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-     "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq --exit-status --raw-output .value)"
+   github_token="$(curl --silent --show-error --fail-with-body --config - \
+     "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" \
+     <<< "header = \"Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}\"" | jq --exit-status --raw-output .value)"
    echo "::add-mask::${github_token}"
 
-   credential="$(curl --silent --show-error --fail-with-body \
+   use_credential "$(curl --silent --show-error --fail-with-body --config - \
      "https://login.microsoftonline.com/${ENTRA_TENANT_ID}/oauth2/v2.0/token" \
      --data-urlencode "client_id=${ENTRA_CLIENT_ID}" \
      --data-urlencode "grant_type=client_credentials" \
      --data-urlencode "scope=499b84ac-1321-427f-aa17-267ca6975798/.default" \
      --data-urlencode "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
-     --data-urlencode "client_assertion=${github_token}" | jq --exit-status --raw-output .access_token)"
-   echo "::add-mask::${credential}"
-   credential_fetched_at="${SECONDS}"
+     <<< "data-urlencode = \"client_assertion=${github_token}\"" | jq --exit-status --raw-output .access_token)"
    ```
 
 4. Hämta varje service principals identitets-id genom att logga in som den och anropa `https://app.vssps.visualstudio.com/_apis/profile/profiles/me` med Entra-tokenet. Svarets `id` är det som behövs.

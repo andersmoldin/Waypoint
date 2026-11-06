@@ -47,6 +47,16 @@ The policy matters only if someone gets code into the page, and no way to do tha
 
 So what you rely on is the code and the way it is released, not the policy alone.
 
+### `vso.work` reaches further than reading
+
+Azure DevOps has no narrower scope that lets Waypoint do what it does, and the tutorials for hubs use this one. Microsoft's scope table lists `vso.work` as inheriting `vso.hooks_write`, and its REST reference accepts `vso.work` for creating a service hook subscription. Waypoint never calls that API.
+
+According to that documentation, a compromised Waypoint release, running for a user who may edit service hook subscriptions (by default a Project Administrator), could create a webhook that sends events to a public address. Azure DevOps delivers it from its servers, so the page's Content Security Policy does not stop it, and it goes on after the page is closed. It does not fire for what the user who created it cannot access. This has not been tried against a real organization.
+
+The token can also read all fields of the work items the viewer has access to, queries and boards, not only what the hub shows.
+
+What you can do: look under Project settings → Service hooks for subscriptions you do not recognize, and turn on auditing if your organization can, which logs `ServiceHooks.SubscriptionCreated`.
+
 ### Text from work items can mislead
 
 Text is always shown as text, never as HTML. It is shown as it stands, so someone who can edit a work item can make its text say what they like, including with invisible characters, characters that reverse the direction of the text, and text a rich text editor would hide. See [known limits](docs/kanda-granser.md#text-som-kan-vilseleda), in Swedish.

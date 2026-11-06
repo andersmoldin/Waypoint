@@ -2,68 +2,130 @@
 # Publishes a vsix with a Marketplace Trusted Publishing credential, without any stored
 # secret, and waits for Marketplace's verdict. Runs in a job that may request an identity
 # token, and needs the workflow's Trusted Publishing policy. See docs/publicering.md.
-# Usage: publishToMarketplace.sh <vsix> <publisher> <version>
+#
+# Only curl and jq, on purpose: this job holds the credential, so no npm package runs in it.
+# The calls are the ones tfx makes. Microsoft documents no Gallery REST API, so docs/publicering.md
+# says where they come from. An answer this script does not understand can only end in a red run.
+#
+# Usage: publishToMarketplace.sh <vsix> <publisher> <extension id> <version>
 set -euo pipefail
 
 vsix="$1"
 publisher="$2"
-version="$3"
+extension_id="$3"
+version="$4"
 
-# Marketplace credentials live for 15 minutes, so a new one is fetched for each
-# phase and whenever the polling has used the current one for 10 minutes.
+# Only the tests set these.
+marketplace="${MARKETPLACE_URL:-https://marketplace.visualstudio.com}"
+deadline_seconds="${VALIDATION_DEADLINE_SECONDS:-1500}"
+poll_seconds="${POLL_SECONDS:-20}"
+
+extension_url="${marketplace}/_apis/gallery/publishers/${publisher}/extensions/${extension_id}"
+accept="Accept: application/json;api-version=7.2-preview.2"
+answer="$(mktemp)"
+trap 'rm -f "${answer}"' EXIT
+
+# Marketplace credentials live for 15 minutes, so a new one is fetched for each phase and
+# whenever the polling has used the current one for 10 minutes. Secrets reach curl through
+# its standard input, because a command line can be read by any other process.
 fetch_credential() {
   local github_token exchange
-  github_token="$(curl --silent --show-error --fail-with-body \
-    --header "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-    "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=marketplace.visualstudio.com" | jq --exit-status --raw-output .value)"
+  github_token="$(curl --silent --show-error --fail-with-body --max-time 60 --config - \
+    "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=marketplace.visualstudio.com" \
+    <<< "header = \"Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}\"" | jq --exit-status --raw-output .value)"
   echo "::add-mask::${github_token}"
 
-  if ! exchange="$(curl --silent --show-error --fail-with-body --request POST \
-    --header "Authorization: FederatedToken ${github_token}" \
+  if ! exchange="$(curl --silent --show-error --fail-with-body --max-time 60 --request POST --config - \
     --header "Accept: application/json" \
     --header "Content-Type: application/json" \
     --data "{\"publisherName\":\"${publisher}\"}" \
-    "https://marketplace.visualstudio.com/_apis/gallery/token?api-version=7.2-preview.1")"; then
+    "${marketplace}/_apis/gallery/token?api-version=7.2-preview.1" \
+    <<< "header = \"Authorization: FederatedToken ${github_token}\"")"; then
     echo "::error::Marketplace refused the token exchange: ${exchange}"
     exit 1
   fi
-  credential="$(jq --exit-status --raw-output .credential <<< "${exchange}")"
-  echo "::add-mask::${credential}"
+  use_credential "$(jq --exit-status --raw-output .credential <<< "${exchange}")"
+}
+
+use_credential() {
+  echo "::add-mask::$1"
+  basic_auth="$(printf 'OAuth:%s' "$1" | base64 | tr -d '\n')"
+  echo "::add-mask::${basic_auth}"
   credential_fetched_at="${SECONDS}"
 }
 
-tfx() {
-  # --no: never the unrelated package called tfx from the registry, should the installed one be missing.
-  npx --no tfx extension "$1" --vsix "${vsix}" --auth-type pat --token "${credential}" --no-prompt "${@:2}"
+marketplace_curl() {
+  curl --silent --show-error --max-time 300 --output "${answer}" --write-out '%{http_code}' --config - "$@" \
+    <<< "header = \"Authorization: Basic ${basic_auth}\"
+header = \"X-TFS-FedAuthRedirect: Suppress\""
 }
 
-fetch_credential
-# tfx's own wait for validation gives up after about four minutes, so it is skipped
-# here and replaced by the polling below. Sharing is not done here: a Trusted Publishing
-# credential may only upload, update and read validation status (403 on share).
-tfx publish --no-wait-validation
+# Prints the HTTP status, and leaves the answer in its file.
+read_extension() {
+  marketplace_curl --header "${accept}" "$1" || true
+}
 
-deadline=$((SECONDS + 1500))
+upload() {
+  local status
+  status="$(marketplace_curl --request "$1" --upload-file "${vsix}" \
+    --header "${accept}" \
+    --header "Content-Type: application/octet-stream" \
+    --header "Transfer-Encoding: chunked" \
+    --header "Expect:" \
+    "$2" || true)"
+  if [[ "${status}" != 2?? ]]; then
+    echo "::error::Marketplace refused the upload (HTTP ${status}): $(jq --raw-output '.message // "no reason given"' "${answer}" 2> /dev/null || true)"
+    exit 1
+  fi
+}
+
+# Read as tfx reads it: a message is a rejection, the validated flag is success, and anything else is still pending.
+verdict='
+  ((.versions // []) | map(select(.version == $version)) | first) as $found
+  | if $found == null then "pending"
+    elif ($found.validationResultMessage // "") != "" then "rejected"
+    elif ($found.flags | if type == "number" then . % 2 == 1
+         elif type == "string" then ascii_downcase | gsub("\\s"; "") | split(",") | index("validated") != null
+         else false end) then "success"
+    else "pending" end'
+
+fetch_credential
+
+# Only 404 means that the extension does not exist. Anything else says nothing about it, so nothing is uploaded.
+status="$(read_extension "${extension_url}?flags=1")"
+case "${status}" in
+  200) upload PUT "${extension_url}?bypassScopeCheck=false" ;;
+  404) upload POST "${marketplace}/_apis/gallery/extensions" ;;
+  *)
+    echo "::error::Could not read ${publisher}.${extension_id} (HTTP ${status}). Nothing was uploaded."
+    exit 1
+    ;;
+esac
+
+deadline=$((SECONDS + deadline_seconds))
 while true; do
   if (( SECONDS - credential_fetched_at > 600 )); then
     fetch_credential
   fi
   # A failed call is not a verdict on the version: keep polling until the deadline.
-  result="$(tfx isvalid --version "${version}" --json || true)"
-  status="$(jq --raw-output '.status // empty' <<< "${result}" 2>/dev/null || true)"
-  case "${status}" in
+  status="$(read_extension "${extension_url}?version=${version}&flags=1")"
+  result=""
+  if [[ "${status}" == 200 ]]; then
+    result="$(jq --raw-output --arg version "${version}" "${verdict}" "${answer}" 2> /dev/null || true)"
+  fi
+  case "${result}" in
     success) break ;;
-    pending | "") echo "Validation of ${version}: ${status:-no answer yet}" ;;
-    *)
-      echo "::error::Marketplace rejected ${version}: $(jq --raw-output '.message // "no reason given"' <<< "${result}")"
+    rejected)
+      echo "::error::Marketplace rejected ${version}: $(jq --raw-output --arg version "${version}" '.versions[] | select(.version == $version) | .validationResultMessage' "${answer}")"
       exit 1
       ;;
+    *) echo "Validation of ${version}: ${result:-no answer yet (HTTP ${status})}" ;;
   esac
   if (( SECONDS >= deadline )); then
-    echo "::error::${version} was uploaded but Marketplace had not validated it after 25 minutes. See docs/publicering.md."
+    echo "::error::${version} was uploaded but Marketplace had not validated it after $((deadline_seconds / 60)) minutes. See docs/publicering.md."
     exit 1
   fi
-  sleep 20
+  sleep "${poll_seconds}"
 done
 
 echo "${version} is uploaded and valid."

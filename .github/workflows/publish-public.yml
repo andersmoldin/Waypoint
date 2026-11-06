@@ -71,9 +71,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Separate from package so that the dependencies' install scripts and the build never
-  # run in a job that can request an identity token. The Trusted Publishing policy only
-  # accepts this environment, and the environment waits for the owner's approval.
+  # Separate from package so that the dependencies and the build never run in a job that
+  # can request an identity token. No Node and no npm package runs here. The Trusted Publishing
+  # policy only accepts this environment, and the environment waits for the owner's approval.
   publish:
     needs: [gate, package]
     runs-on: ubuntu-24.04
@@ -90,11 +90,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # No npm cache here: the package job, which runs install scripts, could write to it.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: waypoint-vsix
@@ -104,4 +99,4 @@ jobs:
         run: |
           echo "${SHA256}  out/waypoint.vsix" | sha256sum --check --strict
           scripts/verifyVsix.sh out/waypoint.vsix andersmoldin waypoint "${VERSION}" public
-      - run: scripts/publishToMarketplace.sh out/waypoint.vsix andersmoldin "${VERSION}"
+      - run: scripts/publishToMarketplace.sh out/waypoint.vsix andersmoldin waypoint "${VERSION}"

@@ -4,7 +4,7 @@ The review before Waypoint's first public release, from 2026-11-06. It covers co
 
 **Who reviewed.** Four independent AI reviewers, working read-only and without seeing each other's results. No external human auditor has reviewed Waypoint. The owner decided every question of risk. Accepted findings say so, with the date of the decision.
 
-**In short.** No way was found to run code in the page through work item data, settings, links or other frames. The serious findings were elsewhere: one work item could make the hub unusable for everyone who opened it, and the release chain gave the unattended development build too much reach. Those are fixed. What remains is listed under [Accepted](#accepted-by-the-owner) and [For the owner to do](#for-the-owner-to-do).
+**In short.** No way was found to run code in the page through work item data, settings, links or other frames. The serious findings were elsewhere: one work item could make the hub unusable for everyone who opened it, the release chain gave the unattended development build too much reach, and hundreds of packages ran in the job that holds the publishing credential. Those are fixed. What remains is listed under [Accepted](#accepted-by-the-owner) and [For the owner to do](#for-the-owner-to-do).
 
 ## Method
 
@@ -24,6 +24,7 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | HTML-1 | High | A value in one rich text field could leave the whole hub blank for everyone, with no message. | Rich text is read without building a tree. A value that cannot be read costs that field. The hub has an error boundary that says what happened and keeps the gear. |
 | HTML-2, ASVS-4 | High | A small value in one rich text field could freeze or crash the viewer's page on every load. | Rich text is read by a scanner whose time follows the length of the text. Only text can come out of it. Decided by the owner on 2026-11-06, replacing the earlier design of reading text nodes from a parsed document. |
 | ADO-1 | High | The unattended development flow could probably reach the public extension, since a publishing credential is asked for by publisher. | `waypoint-dev` moves to a publisher of its own. Decided by the owner on 2026-11-06. It takes effect with the one-time steps in [`docs/publicering.md`](docs/publicering.md). |
+| ADO-2 | High | A compromised package among those the publishing tool loads, about 127 of them, would have run in the job that holds the publishing credential. | The job runs no Node and no npm package, only `curl` and `jq`. The package set was evaluated first: no version in a known-bad range. Decided by the owner on 2026-11-06. It relies on calls Microsoft does not document, so a change shows as a red run. |
 | ADO-4 | Medium | Dependencies' install scripts ran everywhere, although nothing needs them. | `ignore-scripts=true` in `.npmrc`. |
 | ADO-5 | Medium | The check of a built package looked only at identity and visibility, and ran only in the job that builds it. | `scripts/verifyVsix.sh` also checks the scope, the pages, the Content Security Policy and the list of files. It runs again before any credential exists, against the file's checksum. The checksum is shown on the page where the owner approves. |
 | ADO-8 | Medium | The documents said the Content Security Policy blocks all calls to other hosts. It does not stop everything. | `SECURITY.md` and `PRIVACY.md` now say what it covers and what it does not. |
@@ -33,7 +34,7 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | HTML-3 | Low | A long "Waiting on" could push the rest of a column out of view. | At most two lines on the card, and all of it in the panel. Decided by the owner on 2026-11-06. |
 | HTML-4 | Low | Some text could be hidden from the board, and some text not meant for reading was shown. | Fixed by the new reader. |
 | ADO-12 | Low | The documents said Azure DevOps offers no way to protect settings. A store with server-side checks exists, with a broader scope. | Reworded. The owner chose to stay with one scope, see ASVS-1. |
-| ADO-13 | Low | The publish script could fall back to an unrelated npm package if the tool was missing. | `npx --no`. |
+| ADO-13 | Low | The publish script could fall back to an unrelated npm package if the tool was missing. | The publish script no longer uses npm. |
 | ADO-14 | Low | The documented fallback for publishing shared one identity between the two flows. | One identity per publisher. |
 | ADO-15 | Low | A release build used the npm cache, and new versions could reach a merge the same week they came out. | No cache in a release build. Dependabot waits a week, except for security updates. |
 | ADO-16 | Low | There was no plan for a harmful version that had already been released. | Added to [`docs/publicering.md`](docs/publicering.md). |
@@ -46,10 +47,19 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | Id | Severity | Risk | Decision |
 | --- | --- | --- | --- |
 | ASVS-1 | Medium | Settings are protected only in the browser. Anyone who can open the hub can technically change them for any project. | Accepted on 2026-11-06. Waypoint stays with Extension Data Service and one scope. A store with server-side checks would need a broader scope. Limits, error messages that repeat nothing from the document, and a line on the board when hidden groups hide everything reduce the effect. |
+| ADO-6 | Medium | `vso.work` also covers service hook subscriptions, according to Microsoft's documentation, so a compromised release run by a Project Administrator could send events out server-side. No narrower scope lets the hub do what it does, and Microsoft gives no advice on this situation. | Accepted on 2026-11-06, and stated in `SECURITY.md` with what an administrator can check. |
 | ASVS-2, ADO-7 | Medium | Settings and the change log, with names of whoever saved, can very likely be read across projects. Not tried against a real organization. | Accepted on 2026-11-06, and stated in `SECURITY.md` and `PRIVACY.md`. |
 | ASVS-6 | Low | There are no promised times for fixes. The project is run by one private person, without guarantees. ASVS V15.1.1 and V15.2.1 therefore fail. | Accepted on 2026-11-06, and stated in `SECURITY.md`. |
 | HTML-4 | Low | Text hidden with CSS in a rich text field shows on the board. | Accepted on 2026-11-06, and stated in [`docs/kanda-granser.md`](docs/kanda-granser.md). |
 | HTML-5 | Low | Text from a work item can mislead, with invisible characters or characters that reverse its direction. The accessible name of a card holds free text. | Accepted on 2026-11-06, and stated in `SECURITY.md` and `docs/kanda-granser.md`. |
+| ADO-4 | Medium | The owner's computer is part of what must be trusted: the owner's `gh` login can push a tag, set the status the release gate reads and approve a release, with no second factor on that path. | Accepted on 2026-11-06. |
+| ADO-5 | Medium | The public package is not the file that was tested: the end-to-end test runs the development build of the same commit. A compromised build dependency could add code before the checksum is taken, and the owner's approval cannot see that. | Accepted on 2026-11-06. |
+| ADO-8, ASVS-9 | Medium | If code ever got into the page, the Content Security Policy would not stop all of what it could do. No way in has been found. | Accepted on 2026-11-06, and stated in `SECURITY.md`. |
+| ASVS-8, ADO-19 | Info | The extension trusts its parent frame, which is how the SDK works. A hostile parent gets no credentials, but can show false data. | Accepted on 2026-11-06. |
+| HTML-3 | Low | A board where thousands of objects have fields of hundreds of kilobytes is slow to open. The hub does not cut the text. | Accepted on 2026-11-06, and stated in `docs/kanda-granser.md`. |
+| ASVS-6 | Low | React 16 is an old major version, required by `azure-devops-ui`. `npm audit` reports no advisory for it today. | Accepted on 2026-11-06, and stated in `SECURITY.md`. |
+| ADO-4 | Low | `npm audit` reports 14 moderate advisories in build tools, which are not shipped. | Accepted on 2026-11-06. |
+| ADO-3 | Medium | A second account keeps write access to the repository. The rules on `main` and on tags limit what it can do. | Accepted on 2026-11-06. |
 
 ## For the owner to do
 
@@ -62,18 +72,10 @@ These are settings only the owner can change. The commands are in [`docs/publice
 | ADO-9 | Medium | Turn on private vulnerability reporting, which `SECURITY.md` sends reporters to. |
 | ADO-11, ASVS-6 | Low | Make the security scans and the browser checks required for a merge. Decided by the owner on 2026-11-06. |
 
-## Open, awaiting the owner's decision
-
-| Id | Severity | What |
-| --- | --- | --- |
-| ADO-2 | High | How the publishing tool runs in the job that can request a credential. |
-| ADO-6 | Medium | What `vso.work` allows beyond what the hub uses. |
-
 ## Looked at, nothing to change
 
 | Id | Finding |
 | --- | --- |
-| ASVS-8, ADO-19 | The extension trusts its parent frame, which is how the SDK works. A hostile parent gets no credentials from it, and other frames are ignored. |
 | ASVS-9 | `style-src 'unsafe-inline'` is needed by the library and the SDK, and no stored value reaches CSS. |
 | HTML-7 | Parsing hostile HTML used to report to the page's policy. The new reader builds no tree. The policy must not get a reporting address. |
 | HTML-8 | A tag or picklist value becomes part of a DOM id, reduced to safe characters by the library. |
