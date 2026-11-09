@@ -2,7 +2,7 @@
 
 Waypoint aims for WCAG 2.2 AA. This report says what has been verified, by whom and how, and what has not.
 
-**Status on 2026-11-06:** the automated checks pass. **VoiceOver has not been run against this version**, and nothing below claims otherwise.
+**Status on 2026-11-09:** the automated checks pass, and the owner has gone through the hub with VoiceOver with no deviations. The real Azure DevOps page, in the dark theme and in Azure DevOps' high contrast themes, is still to be checked. See [What has not been verified](#what-has-not-been-verified).
 
 ## Results
 
@@ -14,11 +14,29 @@ Waypoint aims for WCAG 2.2 AA. This report says what has been verified, by whom 
 | Keyboard | Playwright in Chrome: Tab reaches the filter, tabs, groups, board and cards, the arrow keys reach the gear, Esc closes the panel and gives focus back, a filter's dropdown can be opened and chosen in, and in the settings a phase can be moved and Save reached | Automated, on every pull request | Passes |
 | Forced colors | The filter icon's dot, on light and dark backgrounds, and that it stays visible when a theme's blue is the color of the button | Automated, on every pull request | Passes |
 | Reflow | At 320 px wide, only the board scrolls sideways (WCAG 1.4.10 exempts a board that needs two dimensions) | Automated, on every pull request | Passes |
-| VoiceOver | | Nobody yet | **Not done** |
+| VoiceOver | Eleven steps on a local copy of the hub, the real code with invented data outside Azure DevOps. See [VoiceOver](#voiceover). | The owner, on 2026-11-09, with VoiceOver on macOS 27.2 in Safari | All eleven as expected, no deviations |
 
 axe-core runs with the rules `label-content-name-mismatch` and `target-size` turned on, since they are WCAG's 2.5.3 and 2.5.8 and off by default. The rule `region` is off: it is a best practice and not a WCAG requirement, and it only objects to the library's tooltips, which live outside every landmark and repeat a button's name.
 
 In forced colors axe-core cannot decide the contrast of some text, such as a primary button's. Screenshots checked by the reviewing agent show that text as readable.
+
+## VoiceOver
+
+The owner went through these steps and heard what the third column says, in every step.
+
+| | Step | Heard |
+| --- | --- | --- |
+| A | The rotor's list of headings | "Waypoint", and one heading per phase with its count, such as "Idea 3 objects" |
+| B | Opening the filter from the keyboard and typing a keyword | The button's name "Filter", and after a pause the number of objects the filter finds across all tabs |
+| C | Closing the filter row with the filter still active | The icon's name "Filter, a filter is active" |
+| D | The tabs | The selected tab, as tab 1 of 3, and the arrow keys change tab |
+| E | The list of groups | "Groups", a list of 3 items |
+| F | A card that waits on something | Its title, group, "Waiting on: …" and phase, with the current situation as its description |
+| G | A card that waits on nothing | Its title, group, phase and "not waiting" |
+| H | Opening a card | Focus moves into the detail panel, its title is read and its fields can be read |
+| I | Closing the panel with Esc | Focus is back on the same card |
+| J | The settings' headings | "Waypoint settings" first, then the sections |
+| K | Moving a phase with its button | "… moved to position 2 of 6" |
 
 ## Fixed in this review
 
@@ -35,7 +53,7 @@ Not a full list: these are where the board has something of its own to get right
 | Criterion | How Waypoint meets it | Verified by |
 | --- | --- | --- |
 | 1.1.1, 4.1.2 | Every control has a name. A card's name holds its title, group, phase and whether it is waiting. | axe-core, tests |
-| 1.3.1 | Headings, lists, tabs and regions have their roles. Lists keep an explicit role, which VoiceOver is otherwise known to drop. | axe-core, tests. VoiceOver not run |
+| 1.3.1 | Headings, lists, tabs and regions have their roles. Lists keep an explicit role, which VoiceOver is otherwise known to drop. | axe-core, tests, VoiceOver |
 | 1.4.1 | Yellow is never alone: "Waiting on:" is written out. Dimmed cards are not the only signal, since the group's own cards are marked current. A group's color always has its name. | Tests |
 | 1.4.3, 1.4.11 | Contrast in the light theme, with the library's fallback colors. | axe-core in Chrome. Real themes not run |
 | 2.1.1, 2.4.3 | The main paths work from the keyboard, and focus returns from the panel to the card. Every path has not been walked through. | Playwright in Chrome |
@@ -44,12 +62,12 @@ Not a full list: these are where the board has something of its own to get right
 | 2.5.7 | Phases and fields can be moved with buttons as well as by dragging. | Tests |
 | 2.5.8 | Targets are at least 24 pixels, or spaced as the criterion allows. | axe-core in Chrome |
 | 3.3.1 | Problems in the settings are said in text, at the field. | Tests |
-| 4.1.3 | The number of objects a filter finds is announced in a status region. | Tests. VoiceOver not run |
+| 4.1.3 | The number of objects a filter finds is announced in a status region. | Tests, VoiceOver |
 
 ## What has not been verified
 
-- **VoiceOver.** Whether the names, roles and announcements above come across as intended.
-- **The real page, in the dark theme and in Azure DevOps' high contrast themes.** The hub gets its colors from the host, and the checks above use the library's fallback colors for the light theme.
+- **VoiceOver in Azure DevOps itself.** The steps above ran on a local copy of the hub, outside the host's frame.
+- **The real page, in the dark theme and in Azure DevOps' high contrast themes.** The hub gets its colors from the host, and the checks above use the library's fallback colors for the light theme. The owner checks the filter icon's dot there after the next release to the test organization.
 - **Other screen readers, voice control and other browsers.** NVDA, JAWS, Voice Control, Firefox, Safari and Edge have not been run.
 - **WCAG 1.4.12 (text spacing) and 2.4.11 (focus not obscured).** No check covers them.
 
