@@ -93,7 +93,7 @@ After the fixes: **17 pass, 6 fail and are accepted, 47 do not apply.** Most of 
 | V1.2.3 | Pass | JSON only through `JSON.stringify`; no JavaScript is generated; CI's JSON override uses a validated version. |
 | V1.2.4 | Pass | WIQL is the only query language: quotes are doubled in `flatQueryForType`, and types are allow-listed first. |
 | V1.2.5 | N/A | No OS calls at runtime; browser only. Dev scripts use argument arrays. |
-| V1.3.1 | Pass | No sanitiser, because rich text is never rendered: only its text is taken out (`src/board/fieldText.ts`). |
+| V1.3.1 | Pass | No sanitiser, because rich text is never rendered: only its text is taken out (`src/board/htmlText.ts`). |
 | V1.3.2 | Pass | No `eval` in `src/`. The bundle has only static `Function("return this")` fallbacks, and the CSP blocks eval. |
 | V1.5.1 | N/A | No XML parsing; `DOMParser` is used only with `text/html`. |
 | V2.1.1 | Pass | Link rules and the limits on settings are in `docs/kanda-granser.md`; settings rules are in `src/settings/settings.ts`. |

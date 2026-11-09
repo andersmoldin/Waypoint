@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- connect-src is the promise that the hub calls no other host than Azure DevOps; see SECURITY.md. -->
+    <!-- connect-src backs up the code, which calls no other host than Azure DevOps. SECURITY.md says what it cannot stop. -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src data:; connect-src https://dev.azure.com https://*.dev.azure.com https://*.visualstudio.com; base-uri 'none'; form-action 'none'"
