@@ -1,6 +1,6 @@
 import type { PicklistField, WorkItem, WorkItemField } from "../platform/platform";
 import { fieldsForFilter, type CardFields, type FilterField, type PhaseTab } from "../settings/settings";
-import { fieldText } from "./fieldText";
+import { fieldText, plainText } from "./fieldText";
 
 export const TITLE_FIELD = "System.Title";
 export const TYPE_FIELD = "System.WorkItemType";
@@ -19,6 +19,8 @@ export interface Board {
   tabs: BoardTab[];
   /** Set when more objects are left after hiding groups and filtering than the board can hold, so that the cut is never silent. */
   truncation: Truncation | null;
+  /** Whether there are objects and hidden groups leave none of them, so that an empty board is not taken for the truth. */
+  allObjectsHidden: boolean;
 }
 
 export interface BoardTab {
@@ -195,10 +197,11 @@ export function buildBoard(source: BoardSource, filter: BoardFilter): Board {
     return (parentId !== null && groups.get(parentId)) || null;
   };
   const passesFilter = filterPredicate(filter, source.filterFields);
-  const objects = source.objects.filter((object) => {
+  const notHidden = source.objects.filter((object) => {
     const group = groupOfObject(object);
-    return !(group && hiddenGroups.has(group.id)) && passesFilter(object, group);
+    return !(group && hiddenGroups.has(group.id));
   });
+  const objects = notHidden.filter((object) => passesFilter(object, groupOfObject(object)));
   const toCard = (object: WorkItem): Card => ({
     id: object.id,
     title: text(object.fields[TITLE_FIELD]),
@@ -249,6 +252,7 @@ export function buildBoard(source: BoardSource, filter: BoardFilter): Board {
     filterFields: source.filterFields,
     tabs: boardTabs,
     truncation: objects.length > MAX_OBJECTS_ON_BOARD ? { shown: MAX_OBJECTS_ON_BOARD, total: objects.length } : null,
+    allObjectsHidden: source.objects.length > 0 && notHidden.length === 0,
   };
 }
 
@@ -336,7 +340,7 @@ function groupOf(parent: WorkItem): Group {
 
 /** `workitemsbatch` leaves empty fields out, so a field that is missing is an empty one. */
 function text(value: unknown): string {
-  return value === undefined || value === null ? "" : String(value);
+  return value === undefined || value === null ? "" : plainText(value);
 }
 
 /**

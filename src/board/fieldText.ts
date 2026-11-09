@@ -1,4 +1,5 @@
 import type { FieldKind, WorkItem, WorkItemField } from "../platform/platform";
+import { htmlAsText } from "./htmlText";
 
 /**
  * What has been read from each work item, so that building the board anew on every filter change parses
@@ -16,6 +17,9 @@ export function fieldText(item: WorkItem, { kind, referenceName }: WorkItemField
   return read;
 }
 
+/** What a field shows when its value cannot even be written out. It costs that field, not the board. */
+const UNREADABLE_VALUE = "Could not be read here. Open the work item to see it.";
+
 /**
  * A field's value as text to show, or "" if it is empty. `workitemsbatch` leaves empty fields out, and
  * a field holding only spaces or empty HTML is just as empty to whoever reads it.
@@ -29,12 +33,13 @@ function valueText(kind: FieldKind, value: unknown): string {
 function valueAsText(kind: FieldKind, value: unknown): string {
   switch (kind) {
     case "html":
-      return htmlAsText(String(value));
+      return typeof value === "string" ? htmlAsText(value) : plainText(value);
     case "yesNo":
       return value === true ? "Yes" : value === false ? "No" : plainText(value);
     case "date": {
-      const date = new Date(String(value));
-      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+      const written = plainText(value);
+      const date = new Date(written);
+      return Number.isNaN(date.getTime()) ? written : date.toLocaleString();
     }
     case "identity": {
       const { displayName } = value as { displayName?: unknown };
@@ -46,39 +51,10 @@ function valueAsText(kind: FieldKind, value: unknown): string {
 }
 
 /** A value of a shape nobody expected still shows what it holds, not "[object Object]". */
-function plainText(value: unknown): string {
-  return typeof value === "object" ? JSON.stringify(value) : String(value);
-}
-
-/** Elements whose content is not text anyone wrote for reading. */
-const NOT_READ = new Set(["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT"]);
-
-/** Elements that begin a line of their own. */
-const LINE_ELEMENTS = new Set(["ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "BR", "DD", "DIV", "DL", "DT", "FIGURE", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "LI", "OL", "P", "PRE", "SECTION", "TABLE", "TR", "UL"]);
-
-/**
- * The text of a rich text field. The HTML comes from whoever can edit the work item, so it never reaches
- * the page: a parsed document runs no scripts and loads nothing, and only its text is taken out of it.
- */
-function htmlAsText(html: string): string {
-  const parts: string[] = [];
-  const read = (node: Node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      parts.push((node.textContent ?? "").replace(/\s+/g, " "));
-      return;
-    }
-    const name = node.nodeName;
-    if (NOT_READ.has(name)) return;
-    const separator = LINE_ELEMENTS.has(name) ? "\n" : name === "TD" || name === "TH" ? " " : "";
-    parts.push(separator);
-    node.childNodes.forEach(read);
-    parts.push(separator);
-  };
-  read(new DOMParser().parseFromString(html, "text/html").body);
-  return parts
-    .join("")
-    .split("\n")
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter((line) => line !== "")
-    .join("\n");
+export function plainText(value: unknown): string {
+  try {
+    return typeof value === "object" ? JSON.stringify(value) : String(value);
+  } catch {
+    return UNREADABLE_VALUE;
+  }
 }

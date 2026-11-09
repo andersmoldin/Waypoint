@@ -1,9 +1,8 @@
 {
   "manifestVersion": 1,
-  "publisher": "andersmoldin",
   "version": "0.0.0",
   "categories": ["Azure Boards"],
-  "targets": [{ "id": "Microsoft.VisualStudio.Services" }],
+  "targets": [{ "id": "Microsoft.VisualStudio.Services.Cloud" }],
   "scopes": ["vso.work"],
   "icons": { "default": "images/icons/waypoint-light-128.png" },
   "files": [

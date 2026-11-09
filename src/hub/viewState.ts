@@ -19,12 +19,14 @@ export interface ViewState {
 }
 
 export function readViewState(parameters: Record<string, string>): ViewState {
+  // The host's contract says text, but a link that says something else must not cost the board.
+  const textParameters = Object.fromEntries(Object.entries(parameters).filter(([, value]) => typeof value === "string"));
   return {
-    tab: parameters[TAB_PARAMETER] ?? null,
-    keyword: (parameters[KEYWORD_PARAMETER] ?? "").trim(),
-    groups: (parameters[GROUP_PARAMETER] ?? "").split(","),
+    tab: textParameters[TAB_PARAMETER] ?? null,
+    keyword: (textParameters[KEYWORD_PARAMETER] ?? "").trim(),
+    groups: (textParameters[GROUP_PARAMETER] ?? "").split(","),
     filterFields: new Map(
-      Object.entries(parameters).flatMap(([name, value]) => (name.startsWith(FILTER_FIELD_PARAMETER) ? [[name.slice(FILTER_FIELD_PARAMETER.length), value] as const] : [])),
+      Object.entries(textParameters).flatMap(([name, value]) => (name.startsWith(FILTER_FIELD_PARAMETER) ? [[name.slice(FILTER_FIELD_PARAMETER.length), value] as const] : [])),
     ),
   };
 }

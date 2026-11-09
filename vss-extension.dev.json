@@ -1,4 +1,5 @@
 {
+  "publisher": "andersmoldin-dev",
   "id": "waypoint-dev",
   "name": "Waypoint (dev)",
   "description": "Development build of Waypoint, a read-only lifecycle hub for Azure Boards.",

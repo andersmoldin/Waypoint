@@ -86,6 +86,16 @@ export function FilterRow({
     };
   });
 
+  /**
+   * The library's own name is "Group filter: Bodil" for what it shows as "Group: Bodil", and a name has
+   * to hold the words on the screen for voice control to find it. It says the same as what is shown.
+   */
+  const dropdownName = (name: string, key: string, items: { id: string; text: string }[]) => {
+    const inRow = rowFilter.getFilterItemValue<string[]>(key) ?? [];
+    const chosen = items.filter(({ id }) => inRow.includes(id));
+    return chosen.length === 0 ? name : `${name}: ${chosen[0].text}${chosen.length > 1 ? ` (+${chosen.length - 1})` : ""}`;
+  };
+
   useEffect(() => {
     const handOver = () => {
       const changed: BoardFilter = {
@@ -116,19 +126,29 @@ export function FilterRow({
     >
       <KeywordFilterBarItem filterItemKey={KEYWORD_ITEM} placeholder="Filter by keyword" />
       {groupItems.length > 0 ? (
-        <DropdownFilterBarItem filterItemKey={GROUP_ITEM} placeholder="Group" items={groupItems} selection={selection} showFilterBox showPlaceholderAsLabel />
+        <DropdownFilterBarItem
+          filterItemKey={GROUP_ITEM}
+          placeholder="Group"
+          ariaLabel={dropdownName("Group", GROUP_ITEM, groupItems)}
+          items={groupItems}
+          selection={selection}
+          showFilterBox
+          showPlaceholderAsLabel
+        />
       ) : null}
       {filterFields.map((filterField) => {
         const key = fieldItemKey(filterField);
         if (filterField.type === "startsWith") return <TextFilterBarItem key={key} filterItemKey={key} placeholder={`${filterField.name} starts with`} />;
         // A dropdown with nothing to choose from would only be in the way.
         if (filterField.options.length === 0) return null;
+        const items = filterField.type === "filled" ? [ALL_ITEM, ...filterField.options] : filterField.options;
         return (
           <DropdownFilterBarItem
             key={key}
             filterItemKey={key}
             placeholder={filterField.name}
-            items={filterField.type === "filled" ? [ALL_ITEM, ...filterField.options] : filterField.options}
+            ariaLabel={dropdownName(filterField.name, key, items)}
+            items={items}
             selection={fieldSelections.get(filterField)}
             showFilterBox={filterField.type === "tagPrefix"}
             hideClearAction={filterField.type === "filled"}

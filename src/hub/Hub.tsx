@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NO_FILTER, buildBoard, isFilterActive, shownGroups, type Board, type BoardFilter, type BoardFilterField } from "../board/boardModel";
 import { loadBoard, type Guess, type LoadedBoard } from "../board/loadBoard";
 import type { Platform } from "../platform/platform";
+import { RenderFailureBoundary } from "../RenderFailureBoundary";
 import { InvalidSettingsError, goneFieldsMessage } from "../settings/settings";
 import { FilterRow, filterCommand, focusFilterCommand } from "./FilterRow";
 import { PhaseBoard, formatCount } from "./PhaseBoard";
@@ -61,8 +62,8 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
         view: readViewState({}),
         failure: `Waypoint could not read the link, so it shows the first tab without a filter: ${error.message}`,
       }));
-    Promise.all([loadBoard(platform), link]).then(
-      ([loaded, { parameters, view, failure }]) => {
+    Promise.all([loadBoard(platform), link])
+      .then(([loaded, { parameters, view, failure }]) => {
         if (unmounted) return;
         const { source } = loaded;
         // A tab the board does not have counts for nothing, and the first tab shows.
@@ -77,10 +78,9 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
           ...filterParameters(filter, source.filterFields),
         });
         if (Object.keys(toWrite).length > 0) writeToUrl(toWrite);
-      },
-      (error: Error) =>
-        unmounted || setState({ status: "failed", reason: error.message, settingsAreInvalid: error instanceof InvalidSettingsError }),
-    );
+      })
+      // Also what fails while the answer is used, since a page left on "Loading…" says nothing about what went wrong.
+      .catch((error: Error) => unmounted || setState({ status: "failed", reason: error.message, settingsAreInvalid: error instanceof InvalidSettingsError }));
     return () => {
       unmounted = true;
     };
@@ -181,13 +181,23 @@ export function Hub({ platform }: { platform: Platform }): React.JSX.Element {
             <MessageCard severity={MessageCardSeverity.Warning}>{linkFailure}</MessageCard>
           </PageContent>
         )}
-        <HubContent
-          state={state}
-          platform={platform}
-          openSettings={openSettingsIfAllowed}
-          onTabChosen={onTabChosen}
-          filterHandlers={{ onFilterChanged, onFilterRowDismissed }}
-        />
+        {/* Outside it, the gear stays as the way to a repair. New for each save, so that a save that repairs the settings brings the board back. */}
+        <RenderFailureBoundary
+          key={timesSaved}
+          whenFailed={(reason) => (
+            <PageContent>
+              <MessageCard severity={MessageCardSeverity.Error}>Waypoint could not show the board: {reason}</MessageCard>
+            </PageContent>
+          )}
+        >
+          <HubContent
+            state={state}
+            platform={platform}
+            openSettings={openSettingsIfAllowed}
+            onTabChosen={onTabChosen}
+            filterHandlers={{ onFilterChanged, onFilterRowDismissed }}
+          />
+        </RenderFailureBoundary>
       </Page>
     </main>
   );
@@ -286,6 +296,9 @@ function LoadedHub({
           </MessageCard>
         ))}
         {goneFields.length > 0 && <GoneFieldsWarning goneFields={goneFields} />}
+        {board.allObjectsHidden && (
+          <MessageCard severity={MessageCardSeverity.Info}>Every object is in a group hidden in Waypoint's settings. A Project Administrator can change this.</MessageCard>
+        )}
         <div className="flex-column rhythm-vertical-16" role="tabpanel" aria-labelledby={getSafeId(`tab-${selectedIndex}`)}>
           <PhaseBoard columns={board.tabs[selectedIndex].columns} groups={board.groups} truncation={board.truncation} platform={platform} />
         </div>

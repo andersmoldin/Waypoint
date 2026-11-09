@@ -27,6 +27,9 @@ import {
   type Group,
 } from "./boardModel";
 
+/** Azure DevOps may delay or block a user who sends too much at once, and a read can hold up to 20,000 work items. */
+const MAX_BATCHES_AT_ONCE = 6;
+
 export interface LoadedBoard {
   /** What the hub guessed because nothing is saved yet, or null once settings are saved. */
   guess: Guess | null;
@@ -112,11 +115,16 @@ async function readFilterFields(
     offered,
     warnings: [
       ...(gone.length > 0
-        ? [`Waypoint left out these filters, because the fields they use are gone or can no longer be used that way: ${gone.join(", ")}. A Project Administrator can change them in Waypoint's settings.`]
+        ? [`Waypoint left out ${filterCount(gone.length)}, because the fields they use are gone or can no longer be used that way. A Project Administrator can change them in Waypoint's settings.`]
         : []),
-      ...(tagsFailure === null ? [] : [`Waypoint could not read the project's tags, so it left out these filters: ${namesOfTagFields.join(", ")}. ${tagsFailure}`]),
+      ...(tagsFailure === null ? [] : [`Waypoint could not read the project's tags, so it left out ${filterCount(namesOfTagFields.length)}. ${tagsFailure}`]),
     ],
   };
+}
+
+/** Counted and not named: the names come from a document anyone can write, and this is said in Waypoint's own voice. */
+function filterCount(count: number): string {
+  return count === 1 ? "1 filter" : `${count} filters`;
 }
 
 /** What decides what is fetched for the board: saved settings or the guess, with the tabs as they stand today. */
@@ -161,6 +169,20 @@ async function readInBatches(platform: Platform, projectId: string, ids: number[
   for (let start = 0; start < ids.length; start += MAX_WORK_ITEMS_PER_BATCH) {
     batches.push(ids.slice(start, start + MAX_WORK_ITEMS_PER_BATCH));
   }
-  const answers = await Promise.all(batches.map((batch) => platform.getWorkItemsBatch(projectId, batch, fields)));
+  const answers = new Array<WorkItem[]>(batches.length);
+  let next = 0;
+  const readBatches = async () => {
+    while (next < batches.length) {
+      const index = next++;
+      try {
+        answers[index] = await platform.getWorkItemsBatch(projectId, batches[index], fields);
+      } catch (error) {
+        // The read has failed as a whole, and more questions only add to it if Azure DevOps is asking for fewer.
+        next = batches.length;
+        throw error;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: MAX_BATCHES_AT_ONCE }, readBatches));
   return answers.flat();
 }

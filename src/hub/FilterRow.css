@@ -2,19 +2,27 @@
   position: relative;
 }
 
+/*
+ * The ring has the icon's color, which contrasts with the button in every theme by necessity. So the dot
+ * shows whatever a theme makes of the blue, also in Azure DevOps' own high contrast themes, whose colors
+ * an extension only meets as variables.
+ */
 .waypoint-filter-dot::after {
   content: "";
   position: absolute;
   top: -2px;
   right: -3px;
-  width: 7px;
-  height: 7px;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
   border-radius: 50%;
   background-color: var(--communication-background, rgba(0, 120, 212, 1));
 }
 
 @media (forced-colors: active) {
   .waypoint-filter-dot::after {
+    border-color: CanvasText;
     background-color: Highlight;
   }
 }

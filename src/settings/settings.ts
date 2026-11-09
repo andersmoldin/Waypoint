@@ -101,13 +101,30 @@ export interface PhaseTab {
   phases: TabPhase[];
 }
 
-/** The stored settings cannot be used. A Project Administrator can fix or reset them in the settings panel. */
+/**
+ * The stored settings cannot be used. A Project Administrator can fix or reset them in the settings panel.
+ * The messages repeat nothing from the document that is not known to be the project's own: that would let
+ * whoever writes the document put their words in Waypoint's mouth, in an error that looks like Waypoint's own.
+ */
 export class InvalidSettingsError extends Error {}
 
 const CURRENT_VERSION = 1;
 
 /** Keeps the document far below the 5 MB that Extension Data Service allows. The oldest entries go first. */
 const MAX_LOG_ENTRIES = 500;
+
+/**
+ * How much a document may hold. Storage is writable by anyone who can open the hub, and every viewer's
+ * browser reads it, so that a document without limits can freeze the hub for all of them. Far above what
+ * an honest document holds, and above what Azure DevOps itself allows where it has a limit: 400 characters
+ * in a tag, 2,048 values in a picklist, 1,024 fields on a type, and 20,000 work items in the answer to the query for groups.
+ */
+const MAX_TEXT_LENGTH = 1_000;
+const MAX_PHASES = 2_048;
+const MAX_DETAIL_FIELDS = 1_024;
+const MAX_HIDDEN_GROUPS = 20_000;
+const MAX_FILTER_FIELDS = 100;
+const MAX_EXCLUDED_TAGS = 20_000;
 
 /** Azure DevOps keeps work item ids as 32-bit integers, and the panel asks it about the saved ones. */
 const MAX_WORK_ITEM_ID = 2 ** 31 - 1;
@@ -124,15 +141,14 @@ export const GUESSED_TYPES = { objectType: "Feature", groupType: "Epic" };
  */
 export function parseSettingsDocument(content: unknown): SettingsDocument {
   if (!isRecord(content)) throw new InvalidSettingsError("The saved settings are not valid: they are not a settings document.");
-  if (content.version !== CURRENT_VERSION) {
-    throw new InvalidSettingsError(`The saved settings have an unknown version: ${JSON.stringify(content.version)}.`);
-  }
+  if (content.version !== CURRENT_VERSION) throw new InvalidSettingsError("The saved settings have an unknown version.");
   requireOnlyKnownKeys(content, ["version", "settings", "log"]);
+  requireAtMost(MAX_LOG_ENTRIES, content.log, "entries in the change log");
   if (!Array.isArray(content.log) || !content.log.every(isLogEntry)) {
     throw new InvalidSettingsError("The saved settings are not valid: the change log is damaged.");
   }
   const { settings } = content;
-  return { settings: settings === null || settings === undefined ? null : parseSettings(settings), log: content.log };
+  return { settings: settings === null || settings === undefined ? null : parseSettings(settings), log: content.log.map(onlyWhoAndWhen) };
 }
 
 function parseSettings(settings: unknown): Settings {
@@ -143,9 +159,11 @@ function parseSettings(settings: unknown): Settings {
   if (!isName(objectType) || !isName(groupType) || !isName(phaseField)) {
     throw new InvalidSettingsError("The saved settings are not valid: the object type, group type and phase field must all be set.");
   }
+  requireAtMost(MAX_PHASES, phaseOrder, "phases in the phase order");
   if (!Array.isArray(phaseOrder) || !phaseOrder.every(isName) || new Set(phaseOrder).size !== phaseOrder.length) {
     throw new InvalidSettingsError("The saved settings are not valid: the phase order must list each phase once.");
   }
+  requireAtMost(MAX_HIDDEN_GROUPS, hiddenGroups, "hidden groups");
   if (!Array.isArray(hiddenGroups) || !hiddenGroups.every(isWorkItemId) || new Set(hiddenGroups).size !== hiddenGroups.length) {
     throw new InvalidSettingsError("The saved settings are not valid: the hidden groups must list each group's work item id once.");
   }
@@ -164,6 +182,7 @@ function parseSettings(settings: unknown): Settings {
 
 function parseFilterFields(filterFields: unknown): FilterField[] {
   if (!Array.isArray(filterFields)) throw new InvalidSettingsError("The saved settings are not valid: the filter fields must be a list.");
+  requireAtMost(MAX_FILTER_FIELDS, filterFields, "filter fields");
   const parsed = filterFields.map(parseFilterField);
   if (new Set(parsed.map(({ name }) => name)).size !== parsed.length) {
     throw new InvalidSettingsError("The saved settings are not valid: two filter fields have the same name.");
@@ -174,8 +193,8 @@ function parseFilterFields(filterFields: unknown): FilterField[] {
 function parseFilterField(filterField: unknown): FilterField {
   if (!isRecord(filterField)) throw new InvalidSettingsError("The saved settings are not valid: a filter field is damaged.");
   const { type, name, referenceName, prefix, excludedTags, filledText, emptyText } = filterField;
-  if (!isTrimmedText(name)) throw new InvalidSettingsError("The saved settings are not valid: a filter field has no proper name.");
-  const damaged = new InvalidSettingsError(`The saved settings are not valid: the filter field ${name} is damaged.`);
+  if (!isTrimmedText(name)) throw new InvalidSettingsError(`The saved settings are not valid: a filter field's name is ${NOT_PROPER_TEXT}.`);
+  const damaged = new InvalidSettingsError(`The saved settings are not valid: a filter field is damaged, or its text is ${NOT_PROPER_TEXT}.`);
   switch (type) {
     case "choice":
     case "startsWith":
@@ -184,6 +203,7 @@ function parseFilterField(filterField: unknown): FilterField {
       return { type, name, referenceName };
     case "tagPrefix":
       requireOnlyKnownKeys(filterField, ["type", "name", "prefix", "excludedTags"]);
+      requireAtMost(MAX_EXCLUDED_TAGS, excludedTags, "unticked tags in a filter field");
       if (!isTagPrefix(prefix) || !Array.isArray(excludedTags) || !excludedTags.every(isName) || new Set(excludedTags).size !== excludedTags.length) throw damaged;
       return { type, name, prefix, excludedTags };
     case "filled":
@@ -202,16 +222,22 @@ export function isTagPrefix(value: unknown): value is string {
 
 function parseTabs(tabs: unknown, phaseOrder: string[]): SavedTab[] {
   if (!Array.isArray(tabs) || tabs.length === 0) throw new InvalidSettingsError("The saved settings are not valid: the tabs must be a list of at least one tab.");
+  requireAtMost(MAX_PHASES, tabs, "tabs");
   const parsed = tabs.map(parseTab);
   if (new Set(parsed.map(({ name }) => name)).size !== parsed.length) {
     throw new InvalidSettingsError("The saved settings are not valid: two tabs have the same name.");
+  }
+  // The settings panel saves no such tab, and it could not be cleared away there without removing each by hand.
+  if (phaseOrder.length > 0 && parsed.some(({ phases }) => phases.length === 0)) {
+    throw new InvalidSettingsError("The saved settings are not valid: a tab has no phases.");
   }
   const phaseNames = parsed.flatMap(({ phases }) => phases.map(({ name }) => name));
   if (new Set(phaseNames).size !== phaseNames.length) {
     throw new InvalidSettingsError("The saved settings are not valid: a phase can only be on one tab, once.");
   }
   // They are saved together, so if they disagree, something other than the settings panel has written them.
-  if (phaseNames.length !== phaseOrder.length || !phaseNames.every((name) => phaseOrder.includes(name))) {
+  const inOrder = new Set(phaseOrder);
+  if (phaseNames.length !== phaseOrder.length || !phaseNames.every((name) => inOrder.has(name))) {
     throw new InvalidSettingsError("The saved settings are not valid: the tabs and the phase order list different phases.");
   }
   return parsed;
@@ -221,8 +247,8 @@ function parseTab(tab: unknown): SavedTab {
   if (!isRecord(tab)) throw new InvalidSettingsError("The saved settings are not valid: a tab is damaged.");
   requireOnlyKnownKeys(tab, ["name", "phases"]);
   const { name, phases } = tab;
-  if (!isTrimmedText(name)) throw new InvalidSettingsError("The saved settings are not valid: a tab has no proper name.");
-  if (!Array.isArray(phases)) throw new InvalidSettingsError(`The saved settings are not valid: the tab ${name} has no list of phases.`);
+  if (!isTrimmedText(name)) throw new InvalidSettingsError(`The saved settings are not valid: a tab's name is ${NOT_PROPER_TEXT}.`);
+  if (!Array.isArray(phases)) throw new InvalidSettingsError("The saved settings are not valid: a tab has no list of phases.");
   return { name, phases: phases.map(parseTabPhase) };
 }
 
@@ -232,7 +258,7 @@ function parseTabPhase(phase: unknown): SavedTabPhase {
   const { name, dividerBefore } = phase;
   if (!isName(name)) throw new InvalidSettingsError("The saved settings are not valid: a phase on a tab has no name.");
   if (dividerBefore === undefined) return { name };
-  if (!isTrimmedText(dividerBefore)) throw new InvalidSettingsError(`The saved settings are not valid: the divider before ${name} has no proper text.`);
+  if (!isTrimmedText(dividerBefore)) throw new InvalidSettingsError(`The saved settings are not valid: a divider's text is ${NOT_PROPER_TEXT}.`);
   return { name, dividerBefore };
 }
 
@@ -246,6 +272,7 @@ function parseRoles(roles: unknown): CardRoles {
 }
 
 function parseDetailFields(detailFields: unknown): string[] {
+  requireAtMost(MAX_DETAIL_FIELDS, detailFields, "fields in the detail panel");
   if (!Array.isArray(detailFields) || !detailFields.every(isName) || new Set(detailFields).size !== detailFields.length) {
     throw new InvalidSettingsError("The saved settings are not valid: the detail panel must list each field once.");
   }
@@ -295,12 +322,12 @@ export function usablePhaseField(settings: Settings, workItemTypes: string[], pi
   const { objectType, groupType, phaseField } = settings;
   for (const type of [objectType, groupType]) {
     if (!workItemTypes.includes(type)) {
-      throw new InvalidSettingsError(`The saved settings name ${type} as a work item type, but the project has no such type.`);
+      throw new InvalidSettingsError("The saved settings name a work item type that the project does not have.");
     }
   }
   const field = picklistFields.find(({ referenceName }) => referenceName === phaseField);
   if (!field) {
-    throw new InvalidSettingsError(`The saved settings name ${phaseField} as the phase field, but ${objectType} has no such picklist field.`);
+    throw new InvalidSettingsError(`The saved settings name a phase field that ${objectType} does not have as a picklist field.`);
   }
   return field;
 }
@@ -355,13 +382,18 @@ export function fieldsWithRoles<Field>(roles: Partial<Record<keyof CardRoles, Fi
 
 /** Says what {@link CardFields.gone} holds, to whoever is looking at the board or the settings. */
 export function goneFieldsMessage(gone: string[]): string {
-  return `The saved settings name ${gone.join(", ")} for the cards or the detail panel, but the object's work item type no longer has them in a form that can be used.`;
+  return `The saved settings name ${gone.length === 1 ? "1 field" : `${gone.length} fields`} for the cards or the detail panel that the object's work item type no longer has in a form that can be used.`;
 }
 
 /** The log entries that can still be read from a document that may be damaged. */
 export function readableLog(content: unknown): LogEntry[] {
   const log = isRecord(content) ? content.log : undefined;
-  return Array.isArray(log) ? log.filter(isLogEntry) : [];
+  return Array.isArray(log) ? log.filter(isLogEntry).slice(-MAX_LOG_ENTRIES).map(onlyWhoAndWhen) : [];
+}
+
+/** What else an entry holds was not written by the settings panel, and it is not carried along when the log is saved again. */
+function onlyWhoAndWhen({ at, userId, userName }: LogEntry): LogEntry {
+  return { at, userId, userName };
 }
 
 /** The document to store for a change: what the project's settings now are, and the log with this change added. */
@@ -406,8 +438,11 @@ export function arrangeTabs(savedTabs: SavedTab[] | undefined, phases: Phase[]):
 }
 
 function requireOnlyKnownKeys(record: Record<string, unknown>, known: string[]): void {
-  const unknown = Object.keys(record).filter((key) => !known.includes(key));
-  if (unknown.length > 0) throw new InvalidSettingsError(`The saved settings are not valid: unknown content: ${unknown.join(", ")}.`);
+  if (Object.keys(record).some((key) => !known.includes(key))) throw new InvalidSettingsError("The saved settings are not valid: they hold something this version does not know.");
+}
+
+function requireAtMost(limit: number, list: unknown, what: string): void {
+  if (Array.isArray(list) && list.length > limit) throw new InvalidSettingsError(`The saved settings are not valid: there are more than ${limit.toLocaleString("en")} ${what}.`);
 }
 
 function isLogEntry(entry: unknown): entry is LogEntry {
@@ -429,8 +464,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isName(value: unknown): value is string {
-  return typeof value === "string" && value !== "";
+  return typeof value === "string" && value !== "" && value.length <= MAX_TEXT_LENGTH;
 }
+
+const NOT_PROPER_TEXT = `blank, has spaces around it or is over ${MAX_TEXT_LENGTH.toLocaleString("en")} characters`;
 
 /** Text as the settings panel saves it: not blank, and without spaces around it. */
 function isTrimmedText(value: unknown): value is string {

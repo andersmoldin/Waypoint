@@ -35,6 +35,13 @@
   list-style: none;
 }
 
+/* WCAG 2.2 asks for a target of at least 24 pixels each way, and the library's checkbox with a label is 22. */
+.waypoint-hidden-groups .bolt-checkbox,
+.waypoint-filter-tags .bolt-checkbox {
+  box-sizing: border-box;
+  min-height: 24px;
+}
+
 .waypoint-phase,
 .waypoint-detail-field {
   display: flex;

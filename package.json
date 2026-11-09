@@ -2,18 +2,20 @@
   "name": "waypoint",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Waypoint, a read-only lifecycle hub for Azure Boards.",
   "license": "MIT",
   "scripts": {
     "lint": "eslint . && tsc --noEmit && tsc --noEmit --project tsconfig.tools.json",
     "test": "vitest run",
-    "build": "npm run build:web && npm run package:public && npm run package:dev && scripts/verifyVsix.sh out/waypoint.vsix waypoint 0.0.0 public && scripts/verifyVsix.sh out/waypoint-dev.vsix waypoint-dev 0.0.0 private",
+    "build": "npm run build:web && npm run package:public && npm run package:dev && scripts/verifyVsix.sh out/waypoint.vsix andersmoldin waypoint 0.0.0 public && scripts/verifyVsix.sh out/waypoint-dev.vsix andersmoldin-dev waypoint-dev 0.0.0 private",
     "build:web": "webpack --mode production",
     "package:dev": "tfx extension create --manifest-globs vss-extension.json vss-extension.dev.json --output-path out/waypoint-dev.vsix --no-prompt",
     "package:public": "tfx extension create --manifest-globs vss-extension.json vss-extension.public.json --output-path out/waypoint.vsix --no-prompt",
     "icons": "node --no-warnings scripts/generateIcons.ts",
     "screenshots": "node --no-warnings scripts/generateScreenshots.ts",
-    "e2e": "node --no-warnings scripts/runE2e.ts"
+    "e2e": "node --no-warnings scripts/runE2e.ts",
+    "browser": "playwright test --config playwright.browser.config.ts"
   },
   "overrides": {
     "azure-devops-extension-api": {
