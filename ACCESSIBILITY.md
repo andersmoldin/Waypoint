@@ -9,7 +9,7 @@ Waypoint aims for WCAG 2.2 AA. This report says what has been verified, by whom 
 | Check | How | By | Result |
 | --- | --- | --- | --- |
 | axe-core 4.14 in jsdom | In the test suite, for the hub, its messages, the filter row, dropdowns, the detail panel and the settings panel (`npm test`). jsdom cannot measure contrast. | Automated, on every pull request | No violations |
-| axe-core 4.14 in real Chrome, with contrast | 10 states with and without forced colors: the board, the filter row, an open dropdown, an active filter with the row closed, the detail panel, dimmed cards, four messages and the settings panel, with invented data on the real page (`npm run browser`) | Automated, on every pull request | No violations, apart from the rule below |
+| axe-core 4.14 in real Chrome, with contrast | 11 states with and without forced colors: the board, the filter row, an open dropdown, an active filter with the row closed, the detail panel, dimmed cards, four messages and the settings panel, with invented data on the real page (`npm run browser`) | Automated, on every pull request | No violations, apart from the rule below |
 | axe-core on the real Azure DevOps page | One test in `npm run e2e`, in the colors of the account's theme | Added here, and not yet run. The owner runs it for each release, and the release gate requires it to be green. | Not run yet |
 | Keyboard | Playwright in Chrome: Tab reaches the filter, tabs, groups, board and cards, the arrow keys reach the gear, Esc closes the panel and gives focus back, a filter's dropdown can be opened and chosen in, and in the settings a phase can be moved and Save reached | Automated, on every pull request | Passes |
 | Forced colors | The filter icon's dot, on light and dark backgrounds, and that it stays visible when a theme's blue is the color of the button | Automated, on every pull request | Passes |
@@ -68,7 +68,7 @@ Not a full list: these are where the board has something of its own to get right
 
 - **VoiceOver in Azure DevOps itself.** The steps above ran on a local copy of the hub, outside the host's frame.
 - **The real page, in the dark theme and in Azure DevOps' high contrast themes.** The hub gets its colors from the host, and the checks above use the library's fallback colors for the light theme. The owner checks the filter icon's dot there after the next release to the test organization.
-- **Other screen readers, voice control and other browsers.** NVDA, JAWS, Voice Control, Firefox, Safari and Edge have not been run.
+- **Other screen readers, voice control and other browsers.** The automated checks have not been run in Safari, Firefox or Edge, and NVDA, JAWS and Voice Control have not been used.
 - **WCAG 1.4.12 (text spacing) and 2.4.11 (focus not obscured).** No check covers them.
 
 ## Known limits

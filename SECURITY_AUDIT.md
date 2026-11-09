@@ -23,7 +23,7 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | --- | --- | --- | --- |
 | HTML-1 | High | A value in one rich text field could leave the whole hub blank for everyone, with no message. | Rich text is read without building a tree. A value that cannot be read costs that field. The hub has an error boundary that says what happened and keeps the gear. |
 | HTML-2, ASVS-4 | High | A small value in one rich text field could freeze or crash the viewer's page on every load. | Rich text is read by a scanner whose time follows the length of the text. Only text can come out of it. Decided by the owner on 2026-11-06, replacing the earlier design of reading text nodes from a parsed document. |
-| ADO-1 | High | The unattended development flow could probably reach the public extension, since a publishing credential is asked for by publisher. | `waypoint-dev` moves to a publisher of its own. Decided by the owner on 2026-11-06. It takes effect with the one-time steps in [`docs/publicering.md`](docs/publicering.md). |
+| ADO-1 | High | The unattended development flow could probably reach the public extension, since a publishing credential is asked for by publisher. | `waypoint-dev` moved to a publisher of its own, `andersmoldin-dev`. Decided by the owner on 2026-11-06. On 2026-11-09 the owner created that publisher, with its Trusted Publishing policy for `publish-dev.yml` and the environment `waypoint-dev`, and removed the old development policy and the extension `andersmoldin.waypoint-dev` from the publisher `andersmoldin`. |
 | ADO-2 | High | A compromised package among those the publishing tool loads, about 127 of them, would have run in the job that holds the publishing credential. | The job runs no npm package, only `curl`, `jq` and `unzip` from the runner and two pinned GitHub actions. The package set was evaluated first: no version in a known-bad range. Decided by the owner on 2026-11-06. It relies on calls Microsoft does not document, so a change shows as a red run. |
 | ADO-3 | Medium | Release tags were not protected, and administrators could bypass the review of a release. | The owner protected release tags against being created, moved or deleted, and turned off the bypass, on 2026-11-09. |
 | ADO-4 | Medium | Dependencies' install scripts ran everywhere, although nothing needs them. | `ignore-scripts=true` in `.npmrc`. |
@@ -69,7 +69,6 @@ These are settings only the owner can change. The commands are in [`docs/publice
 
 | Id | Severity | What |
 | --- | --- | --- |
-| ADO-1 | High | Create the development publisher and remove the old development policy, before this review's changes are merged. |
 | ADO-11, ASVS-6 | Low | Make the security scans required for a merge, decided by the owner on 2026-11-06. The same command also requires the browser checks. |
 | ADO-11 | Low | Dependabot's job for the pinned Semgrep image fails (`dependency_file_not_supported`), so that image is not updated by itself. It affects only what the scan finds. A separate task. |
 
