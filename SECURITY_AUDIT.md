@@ -25,9 +25,11 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | HTML-2, ASVS-4 | High | A small value in one rich text field could freeze or crash the viewer's page on every load. | Rich text is read by a scanner whose time follows the length of the text. Only text can come out of it. Decided by the owner on 2026-11-06, replacing the earlier design of reading text nodes from a parsed document. |
 | ADO-1 | High | The unattended development flow could probably reach the public extension, since a publishing credential is asked for by publisher. | `waypoint-dev` moves to a publisher of its own. Decided by the owner on 2026-11-06. It takes effect with the one-time steps in [`docs/publicering.md`](docs/publicering.md). |
 | ADO-2 | High | A compromised package among those the publishing tool loads, about 127 of them, would have run in the job that holds the publishing credential. | The job runs no npm package, only `curl`, `jq` and `unzip` from the runner and two pinned GitHub actions. The package set was evaluated first: no version in a known-bad range. Decided by the owner on 2026-11-06. It relies on calls Microsoft does not document, so a change shows as a red run. |
+| ADO-3 | Medium | Release tags were not protected, and administrators could bypass the review of a release. | The owner protected release tags against being created, moved or deleted, and turned off the bypass, on 2026-11-09. |
 | ADO-4 | Medium | Dependencies' install scripts ran everywhere, although nothing needs them. | `ignore-scripts=true` in `.npmrc`. |
 | ADO-5 | Medium | The check of a built package looked only at identity and visibility, and ran only in the job that builds it. | `scripts/verifyVsix.sh` also checks the scope, the pages, the Content Security Policy and the list of files. It runs again before any credential exists, against the file's checksum. The checksum is shown on the page where the owner approves. |
 | ADO-8 | Medium | The documents said the Content Security Policy blocks all calls to other hosts. It does not stop everything. | `SECURITY.md` and `PRIVACY.md` now say what it covers and what it does not. |
+| ADO-9 | Medium | Private vulnerability reporting was off, although `SECURITY.md` sent reporters there. | The owner turned it on, on 2026-11-09. `SECURITY.md` also says what to do if the form does not work. |
 | ASVS-3, ADO-10 | Low | A settings document without limits could freeze the hub and the panel that repairs it, or start thousands of requests. | Upper limits in the parser, linear parsing, at most six batches at a time, and the panel saves nothing the hub cannot read back. A document that no panel saves, such as one with empty tabs, now counts as damaged, so the panel offers the reset. |
 | ASVS-5 | Low | Security and privacy text was wrong or incomplete in places. | Corrected. |
 | ASVS-7, HTML-6 | Low | A value of an unexpected type could leave the hub on "Loading…" or blank. | Such values are ignored or shown as what they hold, and every failure ends in a message. |
@@ -68,8 +70,6 @@ These are settings only the owner can change. The commands are in [`docs/publice
 | Id | Severity | What |
 | --- | --- | --- |
 | ADO-1 | High | Create the development publisher and remove the old development policy, before this review's changes are merged. |
-| ADO-3 | Medium | Protect release tags, and let no administrator bypass the review, before the first tag. |
-| ADO-9 | Medium | Turn on private vulnerability reporting, which `SECURITY.md` sends reporters to. |
 | ADO-11, ASVS-6 | Low | Make the security scans required for a merge, decided by the owner on 2026-11-06. The same command also requires the browser checks. |
 | ADO-11 | Low | Dependabot's job for the pinned Semgrep image fails (`dependency_file_not_supported`), so that image is not updated by itself. It affects only what the scan finds. A separate task. |
 
