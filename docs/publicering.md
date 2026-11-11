@@ -203,7 +203,7 @@ Menyikonen är en enda mörk bild, angiven som en sträng. Azure DevOps inverter
 
 En `overview.md` som genereras från README:n var ett alternativ. Nu är README:n själv listningens text: en källa och inget genereringssteg, så texterna kan inte glida isär. Därför är bilderna i README:n relativa (de följer med i paketet) och länkarna absoluta (Marketplace skriver inte om dem).
 
-End-to-end-testet förväntar sig att testorgen har sina påhittade objekt kvar, bland annat `PROCESS_102.Dagny.KontrolleraUppgifter` i fasen `Idéfas`.
+End-to-end-testet förväntar sig att testorgen har sina påhittade objekt kvar, bland annat `RPA_002.Allvert.Kreditnotor` i fasen `Idéfas`.
 
 ## Om en skadlig version har släppts
 

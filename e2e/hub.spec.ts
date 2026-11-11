@@ -67,7 +67,7 @@ async function openHub(page: Page, query = ""): Promise<Frame> {
 }
 
 /** This work item is in the first phase of the first tab of any set-up, and the test organization holds invented data. */
-const KNOWN_OBJECT = "PROCESS_102.Dagny.KontrolleraUppgifter";
+const KNOWN_OBJECT = "RPA_002.Allvert.Kreditnotor";
 
 test("the logged-in user sees the board with the test organization's data", async ({ page }) => {
   const hub = await openHub(page);
