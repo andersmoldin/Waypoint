@@ -1,4 +1,4 @@
-# Waypoint
+# Waypoint Board
 
 **See where every work item is in its lifecycle.** Waypoint is a read-only hub for Azure Boards. It shows your work items as cards on a board with one column per phase, so anyone following the work can see what is on its way and who has to move it forward.
 
@@ -19,7 +19,7 @@ Azure Boards columns follow the State field, so a long-lived lifecycle with its 
 
 ## Set it up
 
-1. Install Waypoint in your organization.
+1. Install Waypoint Board in your organization.
 2. Open **Boards → Waypoint** in a project. Until it is set up, Waypoint guesses Features under Epics and the first picklist field, and says so.
 3. As a Project Administrator, open the gear to choose the work item types, the phase field and order, tabs, card fields, filters and hidden groups. Settings are saved per project.
 
