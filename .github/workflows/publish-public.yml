@@ -78,8 +78,8 @@ jobs:
     needs: [gate, package]
     runs-on: ubuntu-24.04
     environment: marketplace
-    # Upload and validation (at most 25 minutes).
-    timeout-minutes: 40
+    # Upload and validation (at most 90 minutes).
+    timeout-minutes: 105
     permissions:
       contents: read
       id-token: write

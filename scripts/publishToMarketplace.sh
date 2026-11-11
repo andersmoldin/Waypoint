@@ -18,7 +18,7 @@ version="$4"
 
 # Only the tests set these.
 marketplace="${MARKETPLACE_URL:-https://marketplace.visualstudio.com}"
-deadline_seconds="${VALIDATION_DEADLINE_SECONDS:-1500}"
+deadline_seconds="${VALIDATION_DEADLINE_SECONDS:-5400}"
 poll_seconds="${POLL_SECONDS:-20}"
 
 extension_url="${marketplace}/_apis/gallery/publishers/${publisher}/extensions/${extension_id}"
