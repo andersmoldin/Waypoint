@@ -1,6 +1,6 @@
 # Publicering
 
-Waypoint finns i två extensioner: den privata [`waypoint-dev`](#waypoint-dev) under publishern `andersmoldin-dev`, som publiceras vid varje merge, och den publika [`waypoint`](#waypoint) under publishern `andersmoldin`, som publiceras vid en tag och ägarens godkännande. Båda byggs av `vss-extension.json` plus sitt eget manifest (`vss-extension.dev.json` respektive `vss-extension.public.json`). De får inte sätta samma fält: `tfx` behåller det första värdet för fält som `id`, så ett manifest kan inte skriva över ett annat. Bara `files` läggs ihop. `scripts/verifyVsix.sh` kontrollerar den färdiga vsix-filen, både där den byggs och i publiceringsjobbet innan något credential finns: identitet, version, synlighet, att scopet är just `vso.work`, att sidorna är extensionens egna och har sidans Content Security Policy, och att paketet inte innehåller något annat.
+Waypoint finns i två extensioner: den privata [`waypoint-dev`](#waypoint-dev) under publishern `andersmoldin-dev`, som publiceras vid varje merge, och den publika [`waypoint`](#waypoint) ("Waypoint Board") under publishern `andersmoldin`, som publiceras vid en tag och ägarens godkännande. Båda byggs av `vss-extension.json` plus sitt eget manifest (`vss-extension.dev.json` respektive `vss-extension.public.json`). De får inte sätta samma fält: `tfx` behåller det första värdet för fält som `id`, så ett manifest kan inte skriva över ett annat. Bara `files` läggs ihop. `scripts/verifyVsix.sh` kontrollerar den färdiga vsix-filen, både där den byggs och i publiceringsjobbet innan något credential finns: identitet, version, synlighet, att scopet är just `vso.work`, att sidorna är extensionens egna och har sidans Content Security Policy, och att paketet inte innehåller något annat.
 
 Publisherna är två eftersom ett Trusted Publishing-credential begärs för en publisher, inte för en extension, och dev-flödet körs utan godkännande vid varje merge. Det flödet ska inte kunna nå den publika extensionen. Microsoft dokumenterar inte om credentialen är begränsad per extension, så designen utgår från att den inte är det.
 
@@ -94,6 +94,8 @@ Stegen 1 till 3 görs före merge av den PR som lägger till flödet, annars mis
 ## `waypoint`
 
 En tag `vÅÅÅÅ.M.N` på `main` kör `.github/workflows/publish-public.yml`. Ingen PAT eller annan hemlighet lagras eller används.
+
+Listningens visningsnamn ("Waypoint Board", `name` i `vss-extension.public.json`) måste vara unikt i hela Marketplace, över alla publishers. "Waypoint" var upptaget av en annan publisher och gav HTTP 400 vid den första publiceringen. Extensionens id (`andersmoldin.waypoint`) påverkas inte.
 
 1. **Grind.** Versionen läses ur tagen med `scripts/versionFromTag.ts`, och `scripts/releaseGate.sh` avbryter om något av detta inte stämmer:
    - Commiten finns på `main`.
