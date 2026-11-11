@@ -19,7 +19,7 @@ Publiceringsjobbet kör inga npm-paket, bara `curl`, `jq` och `unzip` från runn
 `scripts/publishToMarketplace.sh` gör två saker i ordning:
 
 1. Laddar upp vsix-filen med `PUT` om extensionen finns och `POST` om Marketplace svarar 404. Svarar Marketplace något annat laddas inget upp.
-2. Frågar Marketplace om valideringen var 20:e sekund, i högst 25 minuter. Credentialen byts ut var tionde minut under väntan.
+2. Frågar Marketplace om valideringen var 20:e sekund, i högst 90 minuter. Credentialen byts ut var tionde minut under väntan.
 
 Microsoft dokumenterar inget REST-API för Marketplace, så det här är härlett:
 
@@ -32,7 +32,7 @@ Microsoft dokumenterar inget REST-API för Marketplace, så det här är härlet
 
 Flödet delar inte. Ett Trusted Publishing-credential får bara ladda upp, uppdatera och läsa valideringsstatus; `tfx extension share` ger 403 ("Trusted Publishing credentials only support extension upload and update"). Delning gäller hela extensionen och alla dess versioner, så den görs en gång av ägaren (se nedan). Att credentialen får läsa delningen är inte bevisat, så flödet kontrollerar den inte.
 
-Körningen blir grön när versionen är uppladdad och godkänd. Den blir röd om Marketplace avvisar versionen (felmeddelandet skrivs ut) eller om valideringen inte är klar efter 25 minuter.
+Körningen blir grön när versionen är uppladdad och godkänd. Den blir röd om Marketplace avvisar versionen (felmeddelandet skrivs ut) eller om valideringen inte är klar efter 90 minuter.
 
 **Första körningen efter bytet till `curl` och den nya publishern** är den första riktiga provningen av kontraktet, och den skapar extensionen. Blir den röd före uppladdningen är inget publicerat. Säger den `Could not read` med något annat än 404 har Marketplace svarat oväntat på en extension som inte finns. Ladda då upp den första versionen i portalen, så går nästa merge över till att uppdatera.
 
