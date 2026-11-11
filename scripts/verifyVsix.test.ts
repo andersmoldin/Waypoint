@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const POLICY = /<meta[^>]*Content-Security-Policy[\s\S]*?\/>/.exec(readFileSync("src/hub/hub.html", "utf8"))?.[0] ?? "";
 
-const IDENTITY = 'Publisher="andersmoldin" Version="2026.11.0" Id="waypoint"';
+const IDENTITY = 'Publisher="andersmoldin" Version="2026.11.0" Id="waypoint-board"';
 const GOOD: Record<string, string> = {
   "extension.vsixmanifest": `<Identity Language="en-US" ${IDENTITY}/><GalleryFlags>Public</GalleryFlags>`,
   "extension.vsomanifest": JSON.stringify({ scopes: ["vso.work"], contributions: [{ properties: { uri: "dist/hub.html" } }, { properties: { uri: "dist/settings.html" } }] }),
@@ -23,7 +23,7 @@ const GOOD: Record<string, string> = {
 const made: string[] = [];
 afterEach(() => made.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true })));
 
-function verify(files: Record<string, string | null>, expected: string[] = ["andersmoldin", "waypoint", "2026.11.0", "public"]) {
+function verify(files: Record<string, string | null>, expected: string[] = ["andersmoldin", "waypoint-board", "2026.11.0", "public"]) {
   const directory = mkdtempSync(join(tmpdir(), "waypoint-vsix-"));
   made.push(directory);
   for (const [path, content] of Object.entries({ ...GOOD, ...files })) {
@@ -39,7 +39,7 @@ describe("the check of a built vsix", () => {
   it("lets through what this repository builds", () => {
     const { status, stdout } = verify({});
 
-    expect(stdout).toContain("andersmoldin.waypoint 2026.11.0, public");
+    expect(stdout).toContain("andersmoldin.waypoint-board 2026.11.0, public");
     expect(status).toBe(0);
   });
 
@@ -59,10 +59,10 @@ describe("the check of a built vsix", () => {
   });
 
   it.each<[string, string[]]>([
-    ["another publisher", ["andersmoldin-dev", "waypoint", "2026.11.0", "public"]],
+    ["another publisher", ["andersmoldin-dev", "waypoint-board", "2026.11.0", "public"]],
     ["another id", ["andersmoldin", "waypoint-dev", "2026.11.0", "public"]],
-    ["another version", ["andersmoldin", "waypoint", "2026.11.1", "public"]],
-    ["other visibility", ["andersmoldin", "waypoint", "2026.11.0", "private"]],
+    ["another version", ["andersmoldin", "waypoint-board", "2026.11.1", "public"]],
+    ["other visibility", ["andersmoldin", "waypoint-board", "2026.11.0", "private"]],
   ])("refuses a package when %s was expected", (_kind, expected) => {
     expect(verify({}, expected).status).toBe(1);
   });

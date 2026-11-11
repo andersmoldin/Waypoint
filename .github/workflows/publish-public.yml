@@ -59,7 +59,7 @@ jobs:
         run: |
           npm run build:web
           npm run package:public -- --override "{\"version\":\"${VERSION}\"}"
-          scripts/verifyVsix.sh out/waypoint.vsix andersmoldin waypoint "${VERSION}" public
+          scripts/verifyVsix.sh out/waypoint.vsix andersmoldin waypoint-board "${VERSION}" public
           sha256="$(sha256sum out/waypoint.vsix | cut --delimiter=' ' --fields=1)"
           echo "sha256=${sha256}" >> "${GITHUB_OUTPUT}"
           # What the owner approves, on the page of the run.
@@ -98,5 +98,5 @@ jobs:
       - name: Check the vsix
         run: |
           echo "${SHA256}  out/waypoint.vsix" | sha256sum --check --strict
-          scripts/verifyVsix.sh out/waypoint.vsix andersmoldin waypoint "${VERSION}" public
-      - run: scripts/publishToMarketplace.sh out/waypoint.vsix andersmoldin waypoint "${VERSION}"
+          scripts/verifyVsix.sh out/waypoint.vsix andersmoldin waypoint-board "${VERSION}" public
+      - run: scripts/publishToMarketplace.sh out/waypoint.vsix andersmoldin waypoint-board "${VERSION}"

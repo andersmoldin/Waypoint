@@ -1,6 +1,6 @@
 # Publicering
 
-Waypoint finns i två extensioner: den privata [`waypoint-dev`](#waypoint-dev) under publishern `andersmoldin-dev`, som publiceras vid varje merge, och den publika [`waypoint`](#waypoint) ("Waypoint Board") under publishern `andersmoldin`, som publiceras vid en tag och ägarens godkännande. Båda byggs av `vss-extension.json` plus sitt eget manifest (`vss-extension.dev.json` respektive `vss-extension.public.json`). De får inte sätta samma fält: `tfx` behåller det första värdet för fält som `id`, så ett manifest kan inte skriva över ett annat. Bara `files` läggs ihop. `scripts/verifyVsix.sh` kontrollerar den färdiga vsix-filen, både där den byggs och i publiceringsjobbet innan något credential finns: identitet, version, synlighet, att scopet är just `vso.work`, att sidorna är extensionens egna och har sidans Content Security Policy, och att paketet inte innehåller något annat.
+Waypoint finns i två extensioner: den privata [`waypoint-dev`](#waypoint-dev) under publishern `andersmoldin-dev`, som publiceras vid varje merge, och den publika [`waypoint-board`](#waypoint-board) ("Waypoint Board") under publishern `andersmoldin`, som publiceras vid en tag och ägarens godkännande. Båda byggs av `vss-extension.json` plus sitt eget manifest (`vss-extension.dev.json` respektive `vss-extension.public.json`). De får inte sätta samma fält: `tfx` behåller det första värdet för fält som `id`, så ett manifest kan inte skriva över ett annat. Bara `files` läggs ihop. `scripts/verifyVsix.sh` kontrollerar den färdiga vsix-filen, både där den byggs och i publiceringsjobbet innan något credential finns: identitet, version, synlighet, att scopet är just `vso.work`, att sidorna är extensionens egna och har sidans Content Security Policy, och att paketet inte innehåller något annat.
 
 Publisherna är två eftersom ett Trusted Publishing-credential begärs för en publisher, inte för en extension, och dev-flödet körs utan godkännande vid varje merge. Det flödet ska inte kunna nå den publika extensionen. Microsoft dokumenterar inte om credentialen är begränsad per extension, så designen utgår från att den inte är det.
 
@@ -91,11 +91,11 @@ Stegen 1 till 3 görs före merge av den PR som lägger till flödet, annars mis
 
 7. **Kontrollera hubben.** Öppna Boards i projektet `Waypoint-test` som admin och som Stakeholder. Hubben Waypoint ska synas där och visa fasbrädan med rutan om att den inte är inställd. Saknar Feature picklistfält visas bara rutan. Hubben kräver att Boards-tjänsten är påslagen i projektet.
 
-## `waypoint`
+## `waypoint-board`
 
 En tag `vÅÅÅÅ.M.N` på `main` kör `.github/workflows/publish-public.yml`. Ingen PAT eller annan hemlighet lagras eller används.
 
-Listningens visningsnamn ("Waypoint Board", `name` i `vss-extension.public.json`) måste vara unikt i hela Marketplace, över alla publishers. "Waypoint" var upptaget av en annan publisher och gav HTTP 400 vid den första publiceringen. Extensionens id (`andersmoldin.waypoint`) påverkas inte.
+Listningens visningsnamn ("Waypoint Board", `name` i `vss-extension.public.json`) måste vara unikt i hela Marketplace, över alla publishers. "Waypoint" var upptaget av en annan publisher och gav HTTP 400 vid den första publiceringen. Även extensionens id (`id` i `vss-extension.public.json`) måste vara unikt i hela Marketplace, över alla publishers. Andra publishers har extensioner med id:t `waypoint`, och `andersmoldin.waypoint` avvisades därför med HTTP 400 även efter att visningsnamnet hade bytts: "The extension 'waypoint' already exists in the Marketplace. Please use a different 'name' in the package.json file". Felet nämner `name` i `package.json`, men det är extensionens id som krockar. Därför publiceras den som `andersmoldin.waypoint-board`.
 
 1. **Grind.** Versionen läses ur tagen med `scripts/versionFromTag.ts`, och `scripts/releaseGate.sh` avbryter om något av detta inte stämmer:
    - Commiten finns på `main`.
@@ -212,7 +212,7 @@ End-to-end-testet förväntar sig att testorgen har sina påhittade objekt kvar,
 Azure DevOps uppdaterar alla installationer automatiskt, och att avpublicera en version skyddar bara nya kunder. Gör så här, i den här ordningen:
 
 1. Ta bort Trusted Publishing-policyn för `publish-public.yml` på publishern `andersmoldin`, så att inget mer kan publiceras den vägen.
-2. Avpublicera `waypoint` på <https://marketplace.visualstudio.com/manage>, och kontakta Microsofts support: borttagning av säkerhetsskäl går via dem, och publisher-avtalet kräver att säkerhetshändelser rapporteras så snart som möjligt.
+2. Avpublicera `waypoint-board` på <https://marketplace.visualstudio.com/manage>, och kontakta Microsofts support: borttagning av säkerhetsskäl går via dem, och publisher-avtalet kräver att säkerhetshändelser rapporteras så snart som möjligt.
 3. Ta reda på hur versionen kom ut, och byt det som kan ha läckt.
 4. Släpp en rättad version med högre nummer, från en commit du litar på.
 5. Publicera en GitHub Security Advisory som säger vilka versioner som berörs och vad administratörer ska kontrollera. Under Project settings → Service hooks ska de leta efter prenumerationer de inte känner igen, eftersom `vso.work` enligt Microsofts dokumentation täcker service hooks.
