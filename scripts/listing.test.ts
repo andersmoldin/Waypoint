@@ -19,7 +19,7 @@ function pngHeader(path: string): { width: number; height: number; hasAlpha: boo
 
 describe("the manifests", () => {
   it("make the public extension waypoint and the private one waypoint-dev", () => {
-    expect(publicManifest).toMatchObject({ id: "waypoint", name: "Waypoint Board", public: true });
+    expect(publicManifest).toMatchObject({ id: "waypoint-board", name: "Waypoint Board", public: true });
     expect(devManifest).toMatchObject({ id: "waypoint-dev", name: "Waypoint (dev)", public: false });
   });
 
