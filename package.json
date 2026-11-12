@@ -20,7 +20,9 @@
   "overrides": {
     "azure-devops-extension-api": {
       "azure-devops-extension-sdk": "$azure-devops-extension-sdk"
-    }
+    },
+    "minimatch": "^11.0.1",
+    "glob": "^14.0.2"
   },
   "dependencies": {
     "azure-devops-extension-api": "5.280.1",

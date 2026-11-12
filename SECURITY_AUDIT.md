@@ -33,6 +33,7 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | ASVS-3, ADO-10 | Low | A settings document without limits could freeze the hub and the panel that repairs it, or start thousands of requests. | Upper limits in the parser, linear parsing, at most six batches at a time, and the panel saves nothing the hub cannot read back. A document that no panel saves, such as one with empty tabs, now counts as damaged, so the panel offers the reset. |
 | ASVS-5 | Low | Security and privacy text was wrong or incomplete in places. | Corrected. |
 | ASVS-7, HTML-6 | Low | A value of an unexpected type could leave the hub on "Loading…" or blank. | Such values are ignored or shown as what they hold, and every failure ends in a message. |
+| ASVS-6 | Low | `npm audit` reported 14 moderate advisories in build tools, which are not shipped. Accepted on 2026-11-06. | `overrides` in `package.json` force patched versions of `minimatch` and `glob`. `npm audit` reports none. |
 | HTML-3 | Low | A long "Waiting on" could push the rest of a column out of view. | At most two lines on the card, and all of it in the panel. Decided by the owner on 2026-11-06. |
 | HTML-4 | Low | Some text could be hidden from the board, and some text not meant for reading was shown. | Fixed by the new reader. |
 | ADO-12 | Low | The documents said Azure DevOps offers no way to protect settings. A store with server-side checks exists, with a broader scope. | Reworded. The owner chose to stay with one scope, see ASVS-1. |
@@ -60,7 +61,6 @@ The reviewers did not touch a real Azure DevOps organization or the Marketplace.
 | ASVS-8, ADO-19 | Info | The extension trusts its parent frame, which is how the SDK works. A hostile parent gets no credentials, but can show false data. | Accepted on 2026-11-06. |
 | HTML-3 | Low | A board where thousands of objects have fields of hundreds of kilobytes is slow to open. The hub does not cut the text. | Accepted on 2026-11-06, and stated in `docs/kanda-granser.md`. |
 | ASVS-6 | Low | React 16 is an old major version, required by `azure-devops-ui`. `npm audit` reports no advisory for it today. | Accepted on 2026-11-06, and stated in `SECURITY.md`. |
-| ASVS-6 | Low | `npm audit` reports 14 moderate advisories in build tools, which are not shipped. | Accepted on 2026-11-06. |
 | ADO-3 | Medium | More than one account has write access to the repository. The rules on `main` and on tags limit what they can do. | Accepted on 2026-11-06. |
 
 ## For the owner to do
