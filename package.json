@@ -27,12 +27,12 @@
   "dependencies": {
     "azure-devops-extension-api": "5.280.1",
     "azure-devops-extension-sdk": "5.0.0",
-    "azure-devops-ui": "2.281.0",
+    "azure-devops-ui": "2.282.0",
     "react": "16.14.0",
     "react-dom": "16.14.0"
   },
   "devDependencies": {
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "1.65.0",
     "@testing-library/react": "12.1.5",
     "@types/node": "24.19.2",
     "@types/react": "16.14.70",
@@ -41,12 +41,12 @@
     "css-loader": "7.1.5",
     "eslint": "10.14.0",
     "html-webpack-plugin": "5.6.8",
-    "jsdom": "31.0.0",
+    "jsdom": "31.0.1",
     "style-loader": "4.0.0",
     "tfx-cli": "0.24.2",
     "ts-loader": "9.6.2",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.72.1",
+    "typescript-eslint": "8.72.2",
     "vitest": "5.1.0",
     "webpack": "5.112.2",
     "webpack-cli": "7.3.1"
