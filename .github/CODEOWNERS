@@ -16,5 +16,8 @@
 /playwright.config.ts   @andersmoldin
 /e2e/                   @andersmoldin
 /browser/axe.ts         @andersmoldin
+# The command behind `npm run e2e`, and the versions of Playwright and axe-core it runs.
+/package.json           @andersmoldin
+/package-lock.json      @andersmoldin
 # Turns off install scripts for every npm ci: in CI, in the publishing workflows and on the owner's computer.
 /.npmrc                 @andersmoldin
