@@ -64,7 +64,7 @@ Stegen 1 till 3 görs före merge av den PR som lägger till flödet, annars mis
 
 3. **Ta bort den gamla vägen.** Ta bort policyn för `publish-dev.yml` på publishern `andersmoldin`, och ta bort den gamla extensionen `andersmoldin.waypoint-dev` där. Annars är publisherna inte åtskilda.
 
-4. **Obligatoriska kontroller på `main`.** Rulesetet "Skydda main" kräver `lint`, `test`, `build`, `browser` och skanningarna i `security.yml`, med kravet att branchen är uppdaterad mot `main`. En ny allvarlig sårbarhet i det som levereras stoppar då merge tills den är åtgärdad:
+4. **Obligatoriska kontroller på `main`.** Rulesetet "Skydda main" kräver `lint`, `test`, `build`, `browser`, skanningarna i `security.yml` och kontrollerna i `guard.yml` (`pr-title`, `gitleaks` och `actionlint`), med kravet att branchen är uppdaterad mot `main`. En ny allvarlig sårbarhet i det som levereras stoppar då merge tills den är åtgärdad:
 
    ```sh
    ruleset_id="$(gh api repos/andersmoldin/Waypoint/rulesets --jq '.[] | select(.name == "Skydda main") | .id')"
@@ -74,7 +74,8 @@ Stegen 1 till 3 görs före merge av den PR som lägger till flödet, annars mis
         strict_required_status_checks_policy: true,
         do_not_enforce_on_create: false,
         required_status_checks: [
-          "lint", "test", "build", "browser", "codeql (javascript-typescript)", "codeql (actions)", "semgrep", "npm-audit"
+          "lint", "test", "build", "browser", "codeql (javascript-typescript)", "codeql (actions)", "semgrep", "npm-audit",
+          "pr-title", "gitleaks", "actionlint"
           | {context: ., integration_id: 15368}]}}])}' |
      gh api --method PUT "repos/andersmoldin/Waypoint/rulesets/${ruleset_id}" --input -
    ```

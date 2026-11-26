@@ -4,6 +4,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # The PR title must pass the Conventional Commits check in guard.yml, so the prefix is set
+    # rather than guessed from history: "build(deps): ..." and "build(deps-dev): ...".
+    commit-message:
+      prefix: build
+      prefix-development: build
+      include: scope
     # A week for a bad version to be found and pulled before it reaches a merge. Security updates do not wait.
     cooldown:
       default-days: 7
@@ -30,6 +36,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
     cooldown:
       default-days: 7
     groups:
@@ -40,3 +49,6 @@ updates:
     directory: /.github/semgrep
     schedule:
       interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
