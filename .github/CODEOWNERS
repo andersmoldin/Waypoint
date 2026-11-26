@@ -1,9 +1,9 @@
-# Protected paths: changes here need the captain's approval.
+# Protected paths: changes here need the owner's approval.
 # 1. Files that define how this repo is checked, so an agent cannot change its own checks.
 /.github/   @andersmoldin
 /VISION.md  @andersmoldin
 
-# 2. Code that runs with the captain's credentials.
+# 2. Code that runs with the owner's credentials.
 # The publishing workflows run these: they decide whether and which version is released,
 # and the publish job runs them next to the Marketplace credential from Trusted Publishing (OIDC).
 /scripts/releaseGate.sh          @andersmoldin
@@ -12,6 +12,9 @@
 /scripts/versionFromTag.ts       @andersmoldin
 # `npm run e2e` runs these on the owner's computer with the owner's gh login,
 # and sets the commit status e2e-testorg that the release gate trusts.
-/scripts/runE2e.ts @andersmoldin
-/e2e/              @andersmoldin
-/.npmrc            @andersmoldin
+/scripts/runE2e.ts      @andersmoldin
+/playwright.config.ts   @andersmoldin
+/e2e/                   @andersmoldin
+/browser/axe.ts         @andersmoldin
+# Turns off install scripts for every npm ci: in CI, in the publishing workflows and on the owner's computer.
+/.npmrc                 @andersmoldin
